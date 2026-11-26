@@ -32,6 +32,8 @@ h1, h2, h3 { line-height: 1.14; letter-spacing: -.035em; color: var(--deep); }
 .nav-button:hover { background: #ffffff21; }
 .nav-button.active { background: #b7f0d7; color: var(--deep); }
 .topbar :focus-visible { outline-color: #a5f2cc; }
+.language { padding: 7px 8px; border: 1px solid #ffffff66; border-radius: 8px; background: transparent; color: white; font-size: 14px; font-weight: 650; }
+.language option { color: var(--ink); background: white; }
 
 .hero { background: var(--wash); }
 .hero .shell { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; align-items: center; min-height: 430px; }

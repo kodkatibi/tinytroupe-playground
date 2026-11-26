@@ -91,8 +91,25 @@ class WebAppTests(unittest.TestCase):
                     "ftp://example.com/", "javascript:alert(1)", "file:///etc/passwd", "https://example.com:99999/"):
             with self.assertRaises(ValueError, msg=bad):
                 valid_target(bad)
-        with self.assertRaisesRegex(ValueError, "localhost kullanın"):
+        with self.assertRaisesRegex(ValueError, "Use localhost"):
             valid_target("http://127.0.0.1:13000/")
+
+    def test_messages_follow_the_requested_language(self):
+        from http.server import ThreadingHTTPServer
+        from threading import Thread
+        from urllib.error import HTTPError
+        from urllib.request import Request, urlopen
+        from web_app import State, make_handler
+
+        server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(State()))
+        Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        url = f"http://127.0.0.1:{server.server_port}/api/jobs/missing"
+        for headers, expected in (({"X-Lang": "tr"}, "Deney bulunamadı."), ({}, "Experiment not found.")):
+            with self.assertRaises(HTTPError) as missing:
+                urlopen(Request(url, headers=headers), timeout=5)
+            self.assertEqual(json.load(missing.exception)["error"], expected)
 
     def test_browser_request_policy(self):
         from local_browser import allowed_request
@@ -194,7 +211,7 @@ class JobStateTests(unittest.TestCase):
         self.assertEqual(self.state.connection_key(""), "sample-key")
         self.assertEqual(self.state.connection_key("manual-key"), "manual-key")
         self.state.api_key = None
-        with self.assertRaisesRegex(ValueError, "İstemci anahtarı"):
+        with self.assertRaisesRegex(ValueError, "Client key"):
             self.state.connection_key("")
 
 
@@ -252,7 +269,7 @@ class SettingsBrowserTests(unittest.TestCase):
                 try:
                     page = browser.new_page()
                     page.goto(f"http://127.0.0.1:{server.server_port}/")
-                    page.get_by_role("link", name="Ayarlar", exact=True).click(timeout=3000)
+                    page.get_by_role("link", name="Settings", exact=True).click(timeout=3000)
                     page.locator("#base-url").fill("http://100.64.0.1:8317/v1/")
                     page.locator("#load-models").click()
                     page.locator("#model").select_option("model-b")
@@ -261,6 +278,12 @@ class SettingsBrowserTests(unittest.TestCase):
                     self.assertEqual(page.locator("#base-url").input_value(), "http://100.64.0.1:8317/v1/")
                     self.assertEqual(page.locator("#model").input_value(), "model-b")
                     self.assertEqual(page.evaluate("Object.values(localStorage).join(' ')").find("sample-key"), -1)
+                    with page.expect_navigation():
+                        page.locator("#language").select_option("tr")
+                    page.get_by_role("link", name="Ayarlar", exact=True).wait_for(timeout=3000)
+                    self.assertEqual(page.evaluate("document.documentElement.lang"), "tr")
+                    page.wait_for_function("document.querySelector('#model-count').textContent === '2 model bulundu'")
+                    self.assertEqual(page.locator("#base-url").input_value(), "http://100.64.0.1:8317/v1/")
                 finally:
                     browser.close()
 

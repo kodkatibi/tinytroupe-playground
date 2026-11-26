@@ -8,6 +8,8 @@ import os
 import subprocess
 import sys
 
+from i18n import t
+
 
 HERE = Path(__file__).resolve().parent
 VENV_PYTHON = HERE / ".venv" / "bin" / "python"
@@ -38,17 +40,17 @@ def valid_gateway(value: str) -> tuple[bool, str]:
 
 def main() -> int:
     if not NOTEBOOK.is_file():
-        raise SystemExit("Playground notebook'u bulunamadı.")
+        raise SystemExit(t("Playground notebook not found.", "Playground notebook'u bulunamadı."))
 
-    gateway = input("CLIProxyAPI Tailscale adresi (http://...:8317/v1/): ").strip()
+    gateway = input(t("CLIProxyAPI Tailscale address (http://...:8317/v1/): ", "CLIProxyAPI Tailscale adresi (http://...:8317/v1/): ")).strip()
     valid, host = valid_gateway(gateway)
     if not valid:
-        raise SystemExit("Adres bir Tailscale IP'sinde :8317/v1 olmalı.")
+        raise SystemExit(t("The address must be :8317/v1 on a Tailscale IP.", "Adres bir Tailscale IP'sinde :8317/v1 olmalı."))
 
     model = input("Model [gpt-6-luna]: ").strip() or "gpt-6-luna"
-    client_key = getpass("CLIProxyAPI istemci anahtarı (ekranda görünmez): ").strip()
+    client_key = getpass(t("CLIProxyAPI client key (hidden): ", "CLIProxyAPI istemci anahtarı (ekranda görünmez): ")).strip()
     if not client_key:
-        raise SystemExit("İstemci anahtarı boş olamaz.")
+        raise SystemExit(t("The client key cannot be empty.", "İstemci anahtarı boş olamaz."))
 
     env = os.environ.copy()
     env["OPENAI_BASE_URL"] = gateway
@@ -57,7 +59,8 @@ def main() -> int:
     env["NO_PROXY"] = ",".join(filter(None, (env.get("NO_PROXY", ""), host)))
     env["PATH"] = f"{PYTHON.parent}{os.pathsep}{env.get('PATH', '')}"
     env["VIRTUAL_ENV"] = str(PYTHON.parent.parent)
-    print("JupyterLab açılıyor. Anahtar dosyaya yazılmadı; çıkmak için Ctrl+C.")
+    print(t("Opening JupyterLab. The key was not written to a file; press Ctrl+C to quit.",
+            "JupyterLab açılıyor. Anahtar dosyaya yazılmadı; çıkmak için Ctrl+C."))
     return subprocess.call(
         [str(PYTHON), "-m", "jupyterlab", str(NOTEBOOK), "--ServerApp.ip=127.0.0.1"],
         cwd=HERE,

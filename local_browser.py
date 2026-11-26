@@ -13,6 +13,8 @@ from urllib.parse import urlsplit
 from playwright.sync_api import sync_playwright, Error as PlaywrightError
 from tinytroupe.tools import TinyTool
 
+from i18n import t
+
 
 DISPLAY = ":99"
 VNC_ORIGIN = "http://127.0.0.1:6080"  # noVNC page as the Mac browser opens it (compose publishes 6080)
@@ -61,7 +63,8 @@ def guard(context, target_url, allow_writes, blocked):
 
 class LocalBrowserTool(TinyTool):
     def __init__(self, page, target_url, allow_writes, max_actions, progress=None):
-        super().__init__("web-browser", "Hedef web sitesini tarayıcıda inceler.", real_world_side_effects=allow_writes)
+        super().__init__("web-browser", t("Inspects the target website in a browser.", "Hedef web sitesini tarayıcıda inceler."),
+                         real_world_side_effects=allow_writes)
         self.page = page
         self.target_url = target_url
         self.target_host = urlsplit(target_url).hostname
@@ -73,20 +76,27 @@ class LocalBrowserTool(TinyTool):
         self.progress = progress or (lambda _: None)
 
     def actions_definitions_prompt(self):
-        return (
+        return t(
+            '  - BROWSER_CLICK: Click a numbered element on the screen. content JSON: {"index": 1}.\n'
+            '  - BROWSER_FILL: Enter a value in a numbered text field. content JSON: {"index": 1, "value": "text"}.\n'
+            '  - BROWSER_BACK: Go back to the previous page in the browser. content may be empty.\n',
             '  - BROWSER_CLICK: Ekrandaki numaralı bir öğeye tıkla. content JSON: {"index": 1}.\n'
             '  - BROWSER_FILL: Numaralı metin alanına değer gir. content JSON: {"index": 1, "value": "metin"}.\n'
             '  - BROWSER_BACK: Tarayıcıda önceki sayfaya dön. content boş olabilir.\n'
         )
 
     def actions_constraints_prompt(self):
-        writes = ("  - Veri değiştiren işlemler gerçek etki doğurabilir; görevin gerektirmediği değişikliği yapma.\n"
+        writes = (t("  - Actions that change data can have real effects; don't make changes the task doesn't need.\n",
+                    "  - Veri değiştiren işlemler gerçek etki doğurabilir; görevin gerektirmediği değişikliği yapma.\n")
                   if self.allow_writes else
-                  "  - Sitede yalnız okuma yapabilirsin; form gönderimi ve veri değişikliği engellenir.\n")
+                  t("  - You can only read on this site; form submissions and data changes are blocked.\n",
+                    "  - Sitede yalnız okuma yapabilirsin; form gönderimi ve veri değişikliği engellenir.\n"))
         return (
-            '  - Yalnız son gözlemde listelenen öğe numaralarını kullan. Her işlemden sonra yeni ekranı oku.\n'
+            t('  - Only use element numbers listed in the latest observation. Read the new screen after every action.\n',
+              '  - Yalnız son gözlemde listelenen öğe numaralarını kullan. Her işlemden sonra yeni ekranı oku.\n')
             + writes +
-            '  - Bulduğun belirsizlikleri TALK ile anlat; görmediğin bilgiyi uydurma.\n'
+            t("  - Describe any ambiguities you find with TALK; don't make up information you haven't seen.\n",
+              '  - Bulduğun belirsizlikleri TALK ile anlat; görmediğin bilgiyi uydurma.\n')
         )
 
     def observe(self, agent):
@@ -94,8 +104,10 @@ class LocalBrowserTool(TinyTool):
         if urlsplit(self.page.url).hostname != self.target_host:
             self.page.goto(self.target_url, wait_until="domcontentloaded", timeout=20_000)
             if urlsplit(self.page.url).hostname != self.target_host:
-                raise RuntimeError("Hedef adres site dışına yönlendiriyor; oturum düşmüş olabilir.")
-            agent.see(description="Sayfa hedef site dışına çıktı; hedef adrese geri dönüldü.")
+                raise RuntimeError(t("The target address redirects off the site; the session may have expired.",
+                                      "Hedef adres site dışına yönlendiriyor; oturum düşmüş olabilir."))
+            agent.see(description=t("The page left the target site; went back to the target address.",
+                                     "Sayfa hedef site dışına çıktı; hedef adrese geri dönüldü."))
         body = self.page.locator("body").inner_text(timeout=10_000)[:5500]
         controls = []
         labels = []
@@ -114,7 +126,8 @@ class LocalBrowserTool(TinyTool):
             except PlaywrightError:
                 continue
         self.controls = controls
-        snapshot = f"Tarayıcı sayfası: {self.page.url}\n\nEkran metni:\n{body}\n\nTıklanabilir alanlar:\n" + "\n".join(labels)
+        snapshot = t(f"Browser page: {self.page.url}\n\nScreen text:\n{body}\n\nClickable elements:\n",
+                     f"Tarayıcı sayfası: {self.page.url}\n\nEkran metni:\n{body}\n\nTıklanabilir alanlar:\n") + "\n".join(labels)
         screenshot = self.page.screenshot(type="jpeg", quality=60, timeout=10_000)
         uri = "data:image/jpeg;base64," + base64.b64encode(screenshot).decode("ascii")
         agent.see(images=uri, description=snapshot)
@@ -125,35 +138,36 @@ class LocalBrowserTool(TinyTool):
         if kind not in {"BROWSER_CLICK", "BROWSER_FILL", "BROWSER_BACK"}:
             return False
         if self.actions_used >= self.max_actions:
-            agent.see(description="Tarayıcı adımı sınırına ulaştın; şimdi gözlemlerini TALK ile anlat.")
+            agent.see(description=t("You have reached the browser step limit; now describe your observations with TALK.",
+                                     "Tarayıcı adımı sınırına ulaştın; şimdi gözlemlerini TALK ile anlat."))
             return True
         try:
             if kind == "BROWSER_BACK":
                 self.page.go_back(wait_until="domcontentloaded", timeout=10_000)
-                detail = "Geri dönüldü"
+                detail = t("Went back", "Geri dönüldü")
             else:
                 content = action.get("content")
                 spec = json.loads(content) if isinstance(content, str) else content
                 index = spec.get("index") if isinstance(spec, dict) else None
                 if type(index) is not int or not 1 <= index <= len(self.controls):
-                    raise ValueError("Geçersiz öğe numarası.")
+                    raise ValueError(t("Invalid element number.", "Geçersiz öğe numarası."))
                 element = self.controls[index - 1]
                 if kind == "BROWSER_CLICK":
                     element.click(timeout=7_000)
-                    detail = f"{index} numaralı öğeye tıklandı"
+                    detail = t(f"Clicked element {index}", f"{index} numaralı öğeye tıklandı")
                 else:
                     value = spec.get("value")
                     if not isinstance(value, str) or len(value) > 500:
-                        raise ValueError("Metin alanı değeri geçersiz.")
+                        raise ValueError(t("Invalid text field value.", "Metin alanı değeri geçersiz."))
                     element.fill(value, timeout=7_000)
-                    detail = f"{index} numaralı alan dolduruldu"
+                    detail = t(f"Filled field {index}", f"{index} numaralı alan dolduruldu")
             self.actions_used += 1
             self.page.wait_for_timeout(400)
             self.history.append({"action": detail})
             self.progress(f"{self.actions_used}/{self.max_actions} · {detail}")
             self.observe(agent)
         except (ValueError, PlaywrightError, TypeError, json.JSONDecodeError) as exc:
-            agent.see(description=f"Tarayıcı işlemi yapılamadı: {str(exc)[:120]}")
+            agent.see(description=t(f"Browser action failed: {str(exc)[:120]}", f"Tarayıcı işlemi yapılamadı: {str(exc)[:120]}"))
             self.history.append({"error": type(exc).__name__})
         return True
 
@@ -161,7 +175,8 @@ class LocalBrowserTool(TinyTool):
 def start_display(password):
     """Xvfb + password-protected x11vnc + Origin-checked websockify for one job."""
     if not shutil.which("Xvfb"):
-        raise RuntimeError("Tarayıcı deneyi yalnız Docker kurulumunda çalışır; README'deki Docker adımlarını izleyin.")
+        raise RuntimeError(t("Browser experiments only work in the Docker setup; follow the Docker steps in the README.",
+                              "Tarayıcı deneyi yalnız Docker kurulumunda çalışır; README'deki Docker adımlarını izleyin."))
     secret = Path(tempfile.gettempdir()) / "vnc-password"  # TMPDIR is the job's own directory
     descriptor = os.open(secret, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(descriptor, "w") as handle:
@@ -174,7 +189,7 @@ def start_display(password):
                 break
             time.sleep(0.1)
         else:
-            raise RuntimeError("Sanal ekran başlatılamadı.")
+            raise RuntimeError(t("Could not start the virtual display.", "Sanal ekran başlatılamadı."))
         processes.append(subprocess.Popen(
             ["x11vnc", "-display", DISPLAY, "-localhost", "-rfbport", "5900",
              "-passwdfile", f"rm:{secret}", "-forever", "-shared", "-quiet"], **quiet))

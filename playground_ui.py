@@ -12,6 +12,7 @@ import ipywidgets as widgets
 from IPython import get_ipython
 from IPython.display import clear_output, display
 
+from i18n import t
 from start import valid_gateway
 
 
@@ -24,7 +25,7 @@ def _spoken(actions):
         action = item.get("action", item)
         if action.get("type") == "TALK" and action.get("content"):
             lines.append(action["content"].strip())
-    return "\n".join(lines) or "(Sözlü yanıt gelmedi.)"
+    return "\n".join(lines) or t("(No spoken reply.)", "(Sözlü yanıt gelmedi.)")
 
 
 class Playground:
@@ -32,7 +33,8 @@ class Playground:
         gateway = environ.get("OPENAI_BASE_URL", "").strip()
         valid, _ = valid_gateway(gateway)
         if not valid or not environ.get("OPENAI_API_KEY", "").strip():
-            raise RuntimeError("Önce start.py ile CLIProxyAPI adresini ve istemci anahtarını girin.")
+            raise RuntimeError(t("Enter the CLIProxyAPI address and client key with start.py first.",
+                                 "Önce start.py ile CLIProxyAPI adresini ve istemci anahtarını girin."))
 
         self.model = widgets.Text(
             value=environ.get("TINY_TROUPE_MODEL", "gpt-6-luna"),
@@ -40,31 +42,32 @@ class Playground:
             style={"description_width": "110px"},
         )
         self.scenario = widgets.Textarea(
-            value="Bir ürün veya hizmet hakkında karar veriyorsun.",
-            description="Senaryo", layout=widgets.Layout(width="100%", height="95px"),
+            value=t("You are making a decision about a product or service.", "Bir ürün veya hizmet hakkında karar veriyorsun."),
+            description=t("Scenario", "Senaryo"), layout=widgets.Layout(width="100%", height="95px"),
             style={"description_width": "110px"},
         )
         self.question = widgets.Textarea(
-            value="İlk neyi fark ettin? Karar vermeden önce neyi kontrol edersin?",
-            description="Soru", layout=widgets.Layout(width="100%", height="95px"),
+            value=t("What did you notice first? What would you check before deciding?",
+                    "İlk neyi fark ettin? Karar vermeden önce neyi kontrol edersin?"),
+            description=t("Question", "Soru"), layout=widgets.Layout(width="100%", height="95px"),
             style={"description_width": "110px"},
         )
         self.images = widgets.FileUpload(
             accept="image/png,image/jpeg,image/webp,image/gif", multiple=True,
-            description="Görsel seç", button_style="",
+            description=t("Choose images", "Görsel seç"), button_style="",
         )
         self.mode = widgets.Dropdown(
-            options=[("Bağımsız görüşme", "interview"),
-                     ("TinyWorld grup konuşması", "world")],
-            description="Yöntem", style={"description_width": "110px"},
+            options=[(t("Independent interviews", "Bağımsız görüşme"), "interview"),
+                     (t("TinyWorld group conversation", "TinyWorld grup konuşması"), "world")],
+            description=t("Method", "Yöntem"), style={"description_width": "110px"},
         )
         self.steps = widgets.IntSlider(
-            value=2, min=1, max=6, description="Grup turu",
+            value=2, min=1, max=6, description=t("Group rounds", "Grup turu"),
             style={"description_width": "110px"},
         )
-        self.save = widgets.Checkbox(value=False, description="Yanıtları yerel Markdown raporuna kaydet")
-        self.add_button = widgets.Button(description="Persona ekle", icon="plus")
-        self.run_button = widgets.Button(description="Çalıştır", button_style="primary", icon="play")
+        self.save = widgets.Checkbox(value=False, description=t("Save replies to a local Markdown report", "Yanıtları yerel Markdown raporuna kaydet"))
+        self.add_button = widgets.Button(description=t("Add persona", "Persona ekle"), icon="plus")
+        self.run_button = widgets.Button(description=t("Run", "Çalıştır"), button_style="primary", icon="play")
         self.persona_box = widgets.VBox()
         self.output = widgets.Output()
         self.chat_output = widgets.Output()
@@ -75,17 +78,18 @@ class Playground:
         self.add_button.on_click(lambda _: self._add_persona())
         self.run_button.on_click(self._run)
         self.mode.observe(self._show_steps, names="value")
-        self._add_persona("Ayşe", "Müşteri", "Ürünleri karşılaştırarak karar veriyor.")
+        self._add_persona(*t(("Alex", "Customer", "Compares products before deciding."),
+                              ("Ayşe", "Müşteri", "Ürünleri karşılaştırarak karar veriyor.")))
         self._show_steps()
 
     def _add_persona(self, name="", role="", profile=""):
-        name_input = widgets.Text(value=name, placeholder="Ad", description="Ad")
-        role_input = widgets.Text(value=role, placeholder="Rol", description="Rol")
+        name_input = widgets.Text(value=name, placeholder=t("Name", "Ad"), description=t("Name", "Ad"))
+        role_input = widgets.Text(value=role, placeholder=t("Role", "Rol"), description=t("Role", "Rol"))
         profile_input = widgets.Textarea(
-            value=profile, placeholder="Tercihleri, hedefleri, koşulları",
-            description="Profil", layout=widgets.Layout(width="100%", height="80px"),
+            value=profile, placeholder=t("Preferences, goals, constraints", "Tercihleri, hedefleri, koşulları"),
+            description=t("Profile", "Profil"), layout=widgets.Layout(width="100%", height="80px"),
         )
-        remove_button = widgets.Button(description="Sil", icon="trash")
+        remove_button = widgets.Button(description=t("Remove", "Sil"), icon="trash")
         row = widgets.VBox([widgets.HBox([name_input, role_input, remove_button]), profile_input])
         record = (name_input, role_input, profile_input, row)
         self.rows.append(record)
@@ -107,20 +111,21 @@ class Playground:
         personas = [(name.value.strip(), role.value.strip(), profile.value.strip())
                     for name, role, profile, _ in self.rows]
         if not model or not scenario or not question or not personas:
-            raise ValueError("Model, senaryo, soru ve en az bir persona gerekli.")
+            raise ValueError(t("Model, scenario, question and at least one persona are required.",
+                               "Model, senaryo, soru ve en az bir persona gerekli."))
         if any(not name or not role or not profile for name, role, profile in personas):
-            raise ValueError("Her personanın adı, rolü ve profili dolu olmalı.")
+            raise ValueError(t("Every persona needs a name, role and profile.", "Her personanın adı, rolü ve profili dolu olmalı."))
         if len({name.casefold() for name, _, _ in personas}) != len(personas):
-            raise ValueError("Persona adları farklı olmalı.")
+            raise ValueError(t("Persona names must be different.", "Persona adları farklı olmalı."))
 
         images = []
         for uploaded in self.images.value:
             mime = uploaded.get("type", "")
             if mime not in {"image/png", "image/jpeg", "image/webp", "image/gif"}:
-                raise ValueError("Yalnız PNG, JPEG, WebP veya GIF görseli yükleyin.")
+                raise ValueError(t("Upload only PNG, JPEG, WebP or GIF images.", "Yalnız PNG, JPEG, WebP veya GIF görseli yükleyin."))
             content = bytes(uploaded["content"])
             if not content:
-                raise ValueError("Boş görsel yüklenemez.")
+                raise ValueError(t("Empty images cannot be uploaded.", "Boş görsel yüklenemez."))
             uri = f"data:{mime};base64,{base64.b64encode(content).decode('ascii')}"
             images.append((uploaded["name"], uri))
         return model, scenario, question, personas, images
@@ -155,15 +160,16 @@ class Playground:
         output_dir = HERE / "runs"
         output_dir.mkdir(exist_ok=True)
         stamp = datetime.now(ZoneInfo("Europe/Istanbul")).strftime("%Y%m%d-%H%M%S-%f")
-        path = output_dir / f"deney-{stamp}.md"
-        lines = ["# TinyTroupe deneyi", "", f"Model: {model} · Süre: {elapsed:.1f} sn", "",
-                 f"Yöntem: {self.mode.label}", "", "## Senaryo", "", scenario, "",
-                 "## Soru", "", question, "", "## Personalar", ""]
+        path = output_dir / t(f"experiment-{stamp}.md", f"deney-{stamp}.md")
+        lines = [t("# TinyTroupe experiment", "# TinyTroupe deneyi"), "",
+                 t(f"Model: {model} · Time: {elapsed:.1f} s", f"Model: {model} · Süre: {elapsed:.1f} sn"), "",
+                 f"{t('Method', 'Yöntem')}: {self.mode.label}", "", t("## Scenario", "## Senaryo"), "", scenario, "",
+                 t("## Question", "## Soru"), "", question, "", t("## Personas", "## Personalar"), ""]
         for name, role, profile in personas:
             lines.extend([f"- **{name}** — {role}: {profile}"])
-        lines.extend(["", "## Görseller", "",
-                      ", ".join(name for name, _ in images) if images else "Yok", "",
-                      "## Yanıtlar", ""])
+        lines.extend(["", t("## Images", "## Görseller"), "",
+                      ", ".join(name for name, _ in images) if images else t("None", "Yok"), "",
+                      t("## Replies", "## Yanıtlar"), ""])
         for label, reply in results:
             lines.extend([f"### {label}", "", reply, ""])
         path.write_text("\n".join(lines), encoding="utf-8")
@@ -208,7 +214,7 @@ class Playground:
                         results.append((agent.name, reply))
                         print(f"{agent.name}: {reply}\n")
                 else:
-                    world = TinyWorld("Çalışma grubu", agents)
+                    world = TinyWorld(t("Working group", "Çalışma grubu"), agents)
                     world.make_everyone_accessible()
                     world.broadcast(question)
                     for step, actions_by_agent in enumerate(
@@ -217,15 +223,16 @@ class Playground:
                     ):
                         for agent_name, actions in actions_by_agent.items():
                             reply = _spoken(actions)
-                            results.append((f"Tur {step} · {agent_name}", reply))
-                            print(f"Tur {step} · {agent_name}: {reply}\n")
+                            label = t(f"Round {step} · {agent_name}", f"Tur {step} · {agent_name}")
+                            results.append((label, reply))
+                            print(f"{label}: {reply}\n")
 
                 elapsed = monotonic() - started
-                print(f"Süre: {elapsed:.1f} sn")
+                print(t(f"Time: {elapsed:.1f} s", f"Süre: {elapsed:.1f} sn"))
                 if self.save.value:
                     report = self._save_report(model, scenario, question,
                                                personas, images, results, elapsed)
-                    print(f"Rapor: {report}")
+                    print(t(f"Report: {report}", f"Rapor: {report}"))
 
                 self.last_agents = agents
                 self.last_world = world
@@ -235,19 +242,20 @@ class Playground:
                     shell.user_ns["last_world"] = world
                 with self.chat_output:
                     clear_output(wait=True)
-                    print("Bu ajanlarla sohbet etmeye devam edebilirsiniz:")
+                    print(t("You can keep chatting with these agents:", "Bu ajanlarla sohbet etmeye devam edebilirsiniz:"))
                     AgentChatJupyterWidget(agents).display()
             except Exception as error:
-                print(f"Çalıştırma hatası: {type(error).__name__}: {str(error)[:220]}")
+                print(t("Run error", "Çalıştırma hatası") + f": {type(error).__name__}: {str(error)[:220]}")
             finally:
                 self.run_button.disabled = False
 
     def display(self):
         display(widgets.VBox([
-            widgets.HTML("<h2>TinyTroupe çalışma alanı</h2><p>Girdileri değiştirin ve Çalıştır'a basın. Model çağrısı yalnız düğmeye basınca yapılır.</p>"),
+            widgets.HTML(t("<h2>TinyTroupe workspace</h2><p>Change the inputs and press Run. The model is only called when you press the button.</p>",
+                         "<h2>TinyTroupe çalışma alanı</h2><p>Girdileri değiştirin ve Çalıştır'a basın. Model çağrısı yalnız düğmeye basınca yapılır.</p>")),
             self.model, self.scenario, self.question,
-            widgets.HTML("<h3>Personalar</h3>"), self.persona_box, self.add_button,
-            widgets.HTML("<h3>Görsel ve yöntem</h3>"), self.images,
+            widgets.HTML(t("<h3>Personas</h3>", "<h3>Personalar</h3>")), self.persona_box, self.add_button,
+            widgets.HTML(t("<h3>Images and method</h3>", "<h3>Görsel ve yöntem</h3>")), self.images,
             widgets.HBox([self.mode, self.steps]), self.save, self.run_button,
             self.output, self.chat_output,
         ], layout=widgets.Layout(width="100%")))

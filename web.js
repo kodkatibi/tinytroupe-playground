@@ -1,5 +1,8 @@
 const $ = (id) => document.getElementById(id);
 const token = document.querySelector('meta[name="app-token"]').content;
+const languagePreference = 'tinytroupe-playground.language';
+const lang = readPreference(languagePreference) === 'tr' ? 'tr' : 'en';
+const t = (en, tr) => lang === 'tr' ? tr : en;
 let mode = 'browser';
 let activeJob = null;
 let lastReport = null;
@@ -7,31 +10,35 @@ let modelsLoadedFor = null;
 let serverKeyAvailable = false;
 let preferredModel = '';
 const views = {
-  'ana-sayfa': ['landing', 'landing-title'],
-  'deney-masasi': ['experiment', 'experiment-title'],
-  ayarlar: ['settings', 'settings-title']
+  home: ['landing', 'landing-title'],
+  experiment: ['experiment', 'experiment-title'],
+  settings: ['settings', 'settings-title']
 };
 const templates = {
   kampanya: {
     mode: 'interview',
-    scenario: 'Yeni abonelik kampanyamızın başlığı: “İlk ay ücretsiz, istediğin zaman iptal et.”',
-    question: 'Bu teklifin hangi kısmı ilgini çekiyor? Karar vermeden önce neyi bilmek istersin?'
+    scenario: t('The headline of our new subscription campaign: “First month free, cancel anytime.”', 'Yeni abonelik kampanyamızın başlığı: “İlk ay ücretsiz, istediğin zaman iptal et.”'),
+    question: t('Which part of this offer interests you? What would you want to know before deciding?', 'Bu teklifin hangi kısmı ilgini çekiyor? Karar vermeden önce neyi bilmek istersin?')
   },
   sayfa: {
     mode: 'interview',
-    scenario: 'Bir proje yönetimi uygulamasına ilk kez kayıt oluyorsun. E-posta adresini doğruladıktan sonra ekip davet ekranını görüyorsun. Amacın ilk projeni tek başına oluşturmak.',
-    question: 'Bu ekranda sonraki adımın ne olurdu? İlk projeni oluştururken nerede takılabilirsin?'
+    scenario: t('You are signing up for a project management app for the first time. After verifying your email address, you see the team invite screen. Your goal is to create your first project on your own.', 'Bir proje yönetimi uygulamasına ilk kez kayıt oluyorsun. E-posta adresini doğruladıktan sonra ekip davet ekranını görüyorsun. Amacın ilk projeni tek başına oluşturmak.'),
+    question: t('What would your next step be on this screen? Where might you get stuck while creating your first project?', 'Bu ekranda sonraki adımın ne olurdu? İlk projeni oluştururken nerede takılabilirsin?')
   },
   grup: {
     mode: 'world',
-    scenario: 'Bir ekip, “İlk ay ücretsiz” ve “Her ay %20 indirim” tekliflerinden hangisini öne çıkaracağını tartışıyor.',
-    question: 'Hangi teklifi tercih edersin? Diğer görüşler fikrini değiştirir mi?'
+    scenario: t('A team is debating whether to lead with “First month free” or “20% off every month”.', 'Bir ekip, “İlk ay ücretsiz” ve “Her ay %20 indirim” tekliflerinden hangisini öne çıkaracağını tartışıyor.'),
+    question: t('Which offer would you prefer? Do the other views change your mind?', 'Hangi teklifi tercih edersin? Diğer görüşler fikrini değiştirir mi?')
   }
 };
-const templatePeople = [
+const templatePeople = lang === 'tr' ? [
   { name: 'Deniz', role: 'Fiyat odaklı müşteri', profile: 'Bir ürünü denemeden önce toplam maliyetini ve ücretsiz planın sınırlarını araştırır.' },
   { name: 'Ece', role: 'Hızlı karar veren kullanıcı', profile: 'Kısa açıklamalar ve açık sonraki adımlar ister. Fazla adım varsa denemeyi erteler.' },
   { name: 'Mert', role: 'Koşulları inceleyen müşteri', profile: 'Karar vermeden önce taahhüt, ödeme ve iptal koşullarını kontrol eder.' }
+] : [
+  { name: 'Dana', role: 'Price-focused customer', profile: 'Researches the total cost and the limits of the free plan before trying a product.' },
+  { name: 'Emma', role: 'Quick decision-maker', profile: 'Wants short explanations and clear next steps. Puts off trying if there are too many steps.' },
+  { name: 'Mark', role: 'Customer who checks the terms', profile: 'Checks commitment, payment and cancellation terms before deciding.' }
 ];
 const addressPreference = 'tinytroupe-playground.base-url';
 const modelPreference = 'tinytroupe-playground.model';
@@ -44,13 +51,25 @@ function savePreference(name, value) {
   try {
     if (value) localStorage.setItem(name, value);
     else localStorage.removeItem(name);
-  } catch { notice('Tarayıcı ayarları kaydetmeye izin vermiyor.'); }
+  } catch { notice(t('The browser does not allow saving settings.', 'Tarayıcı ayarları kaydetmeye izin vermiyor.')); }
+}
+
+function translatePage() {
+  document.documentElement.lang = lang;
+  $('language').value = lang;
+  if (lang !== 'tr') return;  // the HTML is written in English
+  for (const element of document.querySelectorAll('[data-tr]')) element.innerHTML = element.dataset.tr;
+  for (const attribute of ['aria-label', 'alt', 'placeholder']) {
+    for (const element of document.querySelectorAll(`[data-tr-${attribute}]`)) {
+      element.setAttribute(attribute, element.getAttribute(`data-tr-${attribute}`));
+    }
+  }
 }
 
 function syncView(focus) {
   const [view, title] = Object.hasOwn(views, location.hash.slice(1))
     ? views[location.hash.slice(1)]
-    : views['ana-sayfa'];
+    : views.home;
   for (const [name] of Object.values(views)) {
     const selected = name === view;
     $(`${name}-view`).hidden = !selected;
@@ -69,13 +88,13 @@ function updateConnectionStatus() {
   const address = $('base-url').value.trim();
   const hasKey = !!$('api-key').value || serverKeyAvailable;
   $('settings-key-status').textContent = $('api-key').value
-    ? 'Elle girilen anahtar yalnız açık sayfada tutulur; tarayıcıya kaydedilmez.'
+    ? t('A key typed here stays only in the open page; it is not saved to the browser.', 'Elle girilen anahtar yalnız açık sayfada tutulur; tarayıcıya kaydedilmez.')
     : serverKeyAvailable
-      ? 'Mac Anahtar Zinciri anahtarı uygulama belleğine yüklendi; tarayıcıya gönderilmedi.'
-      : 'Anahtar yüklenmedi. Bu oturum için girin veya Mac Anahtar Zinciri kurulumunu kullanın.';
+      ? t('The Mac Keychain key is loaded into app memory; it was not sent to the browser.', 'Mac Anahtar Zinciri anahtarı uygulama belleğine yüklendi; tarayıcıya gönderilmedi.')
+      : t('No key loaded. Enter one for this session or use the Mac Keychain setup.', 'Anahtar yüklenmedi. Bu oturum için girin veya Mac Anahtar Zinciri kurulumunu kullanın.');
   $('connection-summary').textContent = address
-    ? `${address} · ${hasKey ? 'İstemci anahtarı hazır' : 'İstemci anahtarı gerekli'}`
-    : 'CLIProxyAPI adresini ayarlardan girin.';
+    ? `${address} · ${hasKey ? t('Client key ready', 'İstemci anahtarı hazır') : t('Client key required', 'İstemci anahtarı gerekli')}`
+    : t('Enter the CLIProxyAPI address in Settings.', 'CLIProxyAPI adresini ayarlardan girin.');
 }
 
 async function initializeSettings() {
@@ -84,7 +103,7 @@ async function initializeSettings() {
   preferredModel = readPreference(modelPreference);
   try {
     const response = await fetch('/api/settings', { cache: 'no-store' });
-    if (!response.ok) throw new Error('Anahtar durumu alınamadı.');
+    if (!response.ok) throw new Error(t('Could not get the key status.', 'Anahtar durumu alınamadı.'));
     serverKeyAvailable = !!(await response.json()).key_available;
   } catch (error) { notice(error.message); }
   updateConnectionStatus();
@@ -109,38 +128,38 @@ function refreshRunButton() {
 
 function invalidateModels() {
   modelsLoadedFor = null;
-  $('model').replaceChildren(new Option('Önce model listesini yükleyin', ''));
+  $('model').replaceChildren(new Option(t('Load the model list first', 'Önce model listesini yükleyin'), ''));
   $('model').disabled = true;
-  $('model-count').textContent = 'Bağlantı değişti · modelleri yeniden yükleyin';
+  $('model-count').textContent = t('Connection changed · reload the models', 'Bağlantı değişti · modelleri yeniden yükleyin');
   refreshRunButton();
 }
 
 async function request(path, payload, method = 'POST') {
   const response = await fetch(path, {
     method,
-    headers: { 'Content-Type': 'application/json', 'X-App-Token': token },
+    headers: { 'Content-Type': 'application/json', 'X-App-Token': token, 'X-Lang': lang },
     body: payload === undefined ? undefined : JSON.stringify(payload),
     cache: 'no-store'
   });
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error || 'İstek tamamlanamadı.');
+  if (!response.ok) throw new Error(data.error || t('The request could not be completed.', 'İstek tamamlanamadı.'));
   return data;
 }
 
 function addPersona(values = {}) {
-  if ($('personas').children.length >= 8) return notice('En fazla sekiz persona ekleyebilirsiniz.');
+  if ($('personas').children.length >= 8) return notice(t('You can add at most eight personas.', 'En fazla sekiz persona ekleyebilirsiniz.'));
   const card = document.createElement('div');
   card.className = 'persona-card';
   card.innerHTML = `<div class="persona-index"></div><div class="persona-fields">
-    <label>Ad<input class="name" maxlength="80" placeholder="Örn. Ayşe"></label>
-    <label>Rol<input class="role" maxlength="150" placeholder="Örn. Müşteri"></label>
-    <label class="profile">Profil<textarea class="profile-text" maxlength="4000" rows="2" placeholder="Hedefleri, tercihleri, koşulları"></textarea></label>
-  </div><button class="persona-remove" type="button" aria-label="Personayı sil" title="Personayı sil">×</button>`;
+    <label>${t('Name', 'Ad')}<input class="name" maxlength="80" placeholder="${t('e.g. Alex', 'Örn. Ayşe')}"></label>
+    <label>${t('Role', 'Rol')}<input class="role" maxlength="150" placeholder="${t('e.g. Customer', 'Örn. Müşteri')}"></label>
+    <label class="profile">${t('Profile', 'Profil')}<textarea class="profile-text" maxlength="4000" rows="2" placeholder="${t('Goals, preferences, constraints', 'Hedefleri, tercihleri, koşulları')}"></textarea></label>
+  </div><button class="persona-remove" type="button" aria-label="${t('Remove persona', 'Personayı sil')}" title="${t('Remove persona', 'Personayı sil')}">×</button>`;
   card.querySelector('.name').value = values.name || '';
   card.querySelector('.role').value = values.role || '';
   card.querySelector('.profile-text').value = values.profile || '';
   card.querySelector('.persona-remove').addEventListener('click', () => {
-    if ($('personas').children.length === 1) return notice('En az bir persona gerekli.');
+    if ($('personas').children.length === 1) return notice(t('At least one persona is required.', 'En az bir persona gerekli.'));
     card.remove();
     renumberPersonas();
   });
@@ -160,7 +179,7 @@ function updateModeUI() {
     button.setAttribute('aria-pressed', String(selected));
   });
   $('steps-field').hidden = mode === 'interview';
-  $('steps-label').textContent = mode === 'browser' ? 'Tarayıcı adımı' : 'Grup turu';
+  $('steps-label').textContent = mode === 'browser' ? t('Browser steps', 'Tarayıcı adımı') : t('Group rounds', 'Grup turu');
   $('upload-field').hidden = mode === 'browser';
   $('browser-fields').hidden = mode !== 'browser';
 }
@@ -175,7 +194,7 @@ function applyTemplate(template) {
     for (const person of templatePeople) addPersona(person);
   } else addPersona();
   $('images').value = '';
-  $('image-count').textContent = 'Görsel seçilmedi';
+  $('image-count').textContent = t('No images selected', 'Görsel seçilmedi');
   updateModeUI();
   refreshRunButton();
   notice('');
@@ -193,7 +212,7 @@ function imageData(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve({ name: file.name, data: reader.result });
-    reader.onerror = () => reject(new Error(`${file.name} okunamadı.`));
+    reader.onerror = () => reject(new Error(t(`Could not read ${file.name}.`, `${file.name} okunamadı.`)));
     reader.readAsDataURL(file);
   });
 }
@@ -202,26 +221,26 @@ async function loadModels(returnToDesk = true) {
   if ($('load-models').disabled) return;
   notice('');
   $('load-models').disabled = true;
-  $('load-models').textContent = 'Modeller yükleniyor…';
+  $('load-models').textContent = t('Loading models…', 'Modeller yükleniyor…');
   try {
     const signature = connectionSignature();
     const data = await request('/api/models', { base_url: $('base-url').value.trim(), api_key: $('api-key').value });
     if (signature !== connectionSignature()) return;
     const select = $('model');
-    select.replaceChildren(new Option('Bir model seçin', ''));
+    select.replaceChildren(new Option(t('Choose a model', 'Bir model seçin'), ''));
     for (const id of data.models) select.add(new Option(id, id));
     select.disabled = false;
     if (data.models.includes(preferredModel)) select.value = preferredModel;
     modelsLoadedFor = signature;
-    $('model-count').textContent = `${data.models.length} model bulundu`;
+    $('model-count').textContent = t(`${data.models.length} models found`, `${data.models.length} model bulundu`);
     refreshRunButton();
-    if (returnToDesk && location.hash === '#ayarlar') location.hash = 'deney-masasi';
+    if (returnToDesk && location.hash === '#settings') location.hash = 'experiment';
   } catch (error) {
     invalidateModels();
     notice(error.message);
   } finally {
     $('load-models').disabled = false;
-    $('load-models').innerHTML = '<span class="button-icon">↻</span> Modelleri yükle';
+    $('load-models').innerHTML = `<span class="button-icon">↻</span> ${t('Load models', 'Modelleri yükle')}`;
   }
 }
 
@@ -239,13 +258,13 @@ function showResults(data) {
     if (item.trace?.length) {
       const trace = document.createElement('div');
       trace.className = 'result-meta';
-      trace.textContent = `Gezinme: ${item.trace.filter(Boolean).join(' → ')}${item.blocked_requests?.length ? ` · ${item.blocked_requests.length} istek engellendi` : ''}`;
+      trace.textContent = `${t('Browsing', 'Gezinme')}: ${item.trace.filter(Boolean).join(' → ')}${item.blocked_requests?.length ? ` · ${item.blocked_requests.length} ${t('requests blocked', 'istek engellendi')}` : ''}`;
       card.append(trace);
     }
     list.append(card);
   }
   $('progress').classList.remove('working');
-  $('progress').textContent = `${data.results.length} yanıt · ${data.elapsed_seconds} sn · ${data.model}`;
+  $('progress').textContent = `${data.results.length} ${t('replies', 'yanıt')} · ${data.elapsed_seconds} ${t('s', 'sn')} · ${data.model}`;
   $('download').hidden = false;
 }
 
@@ -262,7 +281,7 @@ function showLogin(job) {
   if (job.vnc_url) $('vnc-link').href = job.vnc_url;
   $('continue').hidden = !waiting;
   $('login-help').hidden = !waiting;
-  $('vnc-link').textContent = waiting ? 'Tarayıcı ekranını aç ↗' : 'Ajanları izle ↗';
+  $('vnc-link').textContent = waiting ? t('Open browser screen ↗', 'Tarayıcı ekranını aç ↗') : t('Watch the agents ↗', 'Ajanları izle ↗');
 }
 
 async function continueJob() {
@@ -277,9 +296,9 @@ async function continueJob() {
 async function pollJob(jobId) {
   if (activeJob !== jobId) return;
   try {
-    const response = await fetch(`/api/jobs/${encodeURIComponent(jobId)}`, { cache: 'no-store' });
+    const response = await fetch(`/api/jobs/${encodeURIComponent(jobId)}`, { cache: 'no-store', headers: { 'X-Lang': lang } });
     const job = await response.json();
-    if (!response.ok) throw new Error(job.error || 'Deney durumu alınamadı.');
+    if (!response.ok) throw new Error(job.error || t('Could not get the experiment status.', 'Deney durumu alınamadı.'));
     const latest = job.events.at(-1);
     if (latest) $('progress').textContent = latest;
     showLogin(job);
@@ -289,7 +308,9 @@ async function pollJob(jobId) {
       finishJob();
     } else if (job.status === 'failed' || job.status === 'canceled') {
       $('progress').classList.remove('working');
-      $('progress').textContent = latest || (job.status === 'canceled' ? 'Deney iptal edildi.' : 'Deney tamamlanamadı.');
+      $('progress').textContent = latest || (job.status === 'canceled'
+        ? t('Experiment canceled.', 'Deney iptal edildi.')
+        : t('The experiment could not be completed.', 'Deney tamamlanamadı.'));
       finishJob();
     } else {
       setTimeout(() => pollJob(jobId), 1200);
@@ -303,24 +324,24 @@ async function pollJob(jobId) {
 
 async function runExperiment() {
   notice('');
-  if (!modelsLoadedFor || modelsLoadedFor !== connectionSignature() || !$('model').value) return notice('Önce modelleri yükleyip bir model seçin.');
+  if (!modelsLoadedFor || modelsLoadedFor !== connectionSignature() || !$('model').value) return notice(t('Load the models and choose one first.', 'Önce modelleri yükleyip bir model seçin.'));
   const people = personas();
-  if (people.some(p => !p.name || !p.role || !p.profile)) return notice('Her personanın adını, rolünü ve profilini doldurun.');
-  if (new Set(people.map(p => p.name.toLocaleLowerCase('tr'))).size !== people.length) return notice('Persona adları farklı olmalı.');
+  if (people.some(p => !p.name || !p.role || !p.profile)) return notice(t("Fill in every persona's name, role and profile.", 'Her personanın adını, rolünü ve profilini doldurun.'));
+  if (new Set(people.map(p => p.name.toLocaleLowerCase('tr'))).size !== people.length) return notice(t('Persona names must be different.', 'Persona adları farklı olmalı.'));
   const files = mode === 'browser' ? [] : [...$('images').files];
-  if (files.length > 4 || files.some(f => f.size > 5 * 1024 * 1024 || !['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(f.type))) return notice(`En fazla 4 adet PNG, JPEG, WebP veya GIF yükleyin. Her görsel en çok 5 MB olabilir.`);
+  if (files.length > 4 || files.some(f => f.size > 5 * 1024 * 1024 || !['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(f.type))) return notice(t('Upload at most 4 PNG, JPEG, WebP or GIF images. Each image can be at most 5 MB.', 'En fazla 4 adet PNG, JPEG, WebP veya GIF yükleyin. Her görsel en çok 5 MB olabilir.'));
   const payload = {
     base_url: $('base-url').value.trim(), api_key: $('api-key').value,
     model: $('model').value, scenario: $('scenario').value.trim(), question: $('question').value.trim(),
     mode, steps: Number($('steps').value), personas: people,
     target_url: $('target-url').value.trim(), allow_writes: $('allow-writes').checked
   };
-  if (!payload.scenario || !payload.question) return notice('Senaryo ve soru gerekli.');
+  if (!payload.scenario || !payload.question) return notice(t('A scenario and a question are required.', 'Senaryo ve soru gerekli.'));
   $('results-panel').hidden = false;
   $('results').replaceChildren();
   $('download').hidden = true;
   $('progress').classList.add('working');
-  $('progress').textContent = 'Deney başlatılıyor…';
+  $('progress').textContent = t('Starting the experiment…', 'Deney başlatılıyor…');
   $('results-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
   $('run').disabled = true;
   try {
@@ -332,7 +353,7 @@ async function runExperiment() {
     pollJob(activeJob);
   } catch (error) {
     $('progress').classList.remove('working');
-    $('progress').textContent = 'Deney başlatılamadı.';
+    $('progress').textContent = t('The experiment could not be started.', 'Deney başlatılamadı.');
     notice(error.message);
     refreshRunButton();
   }
@@ -342,34 +363,44 @@ async function cancelJob() {
   if (!activeJob) return;
   try {
     await request(`/api/jobs/${encodeURIComponent(activeJob)}`, undefined, 'DELETE');
-    $('progress').textContent = 'İptal ediliyor…';
+    $('progress').textContent = t('Canceling…', 'İptal ediliyor…');
   } catch (error) { notice(error.message); }
 }
 
 function downloadReport() {
   if (!lastReport?.result) return;
   const { input, result } = lastReport;
-  const lines = ['# TinyTroupe deneyi', '', `Model: ${result.model} · Süre: ${result.elapsed_seconds} sn`, '',
-    `Yöntem: ${input.mode === 'browser' ? 'Tarayıcı gezintisi' : input.mode === 'world' ? 'Grup konuşması' : 'Bağımsız görüşme'}`, '',
-    ...(input.mode === 'browser' ? [`Hedef: ${input.target_url} · ${input.allow_writes ? 'yazma açık' : 'salt-okuma'}`, ''] : []),
-    '## Senaryo', '', input.scenario, '', '## Soru', '', input.question, '',
-    '## Personalar', '', ...input.personas.map(p => `- **${p.name}** — ${p.role}: ${p.profile}`), '',
-    '## Görseller', '', input.images.join(', ') || 'Yok', '', '## Yanıtlar', ''];
+  const method = input.mode === 'browser' ? t('Site browsing', 'Tarayıcı gezintisi')
+    : input.mode === 'world' ? t('Group conversation', 'Grup konuşması') : t('Independent interviews', 'Bağımsız görüşme');
+  const lines = [t('# TinyTroupe experiment', '# TinyTroupe deneyi'), '', `Model: ${result.model} · ${t('Time', 'Süre')}: ${result.elapsed_seconds} ${t('s', 'sn')}`, '',
+    `${t('Method', 'Yöntem')}: ${method}`, '',
+    ...(input.mode === 'browser' ? [`${t('Target', 'Hedef')}: ${input.target_url} · ${input.allow_writes ? t('writes on', 'yazma açık') : t('read-only', 'salt-okuma')}`, ''] : []),
+    t('## Scenario', '## Senaryo'), '', input.scenario, '', t('## Question', '## Soru'), '', input.question, '',
+    t('## Personas', '## Personalar'), '', ...input.personas.map(p => `- **${p.name}** — ${p.role}: ${p.profile}`), '',
+    t('## Images', '## Görseller'), '', input.images.join(', ') || t('None', 'Yok'), '', t('## Replies', '## Yanıtlar'), ''];
   for (const item of result.results) {
     lines.push(`### ${item.label}`, '', item.reply, '');
-    if (item.trace?.length) lines.push('Gezinme:', ...item.trace.map(step => `- ${step}`), '');
+    if (item.trace?.length) lines.push(t('Browsing:', 'Gezinme:'), ...item.trace.map(step => `- ${step}`), '');
   }
   const url = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/markdown;charset=utf-8' }));
   const link = document.createElement('a');
   link.href = url;
-  link.download = `tinytroupe-deney-${new Date().toISOString().slice(0, 10)}.md`;
+  link.download = `${t('tinytroupe-experiment', 'tinytroupe-deney')}-${new Date().toISOString().slice(0, 10)}.md`;
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+$('language').addEventListener('change', () => {
+  const chosen = $('language').value;
+  $('language').value = lang;  // the page switches language only after the reload below
+  // A reload would lose track of the running job, and the server allows only one at a time.
+  if (activeJob) return notice(t('Wait for the experiment to finish or cancel it before switching language.', 'Dili değiştirmeden önce deneyin bitmesini bekleyin veya iptal edin.'));
+  savePreference(languagePreference, chosen);
+  if (readPreference(languagePreference) === chosen) location.reload();
+});
 $('add-persona').addEventListener('click', () => addPersona());
 $('load-models').addEventListener('click', () => loadModels());
-$('edit-connection').addEventListener('click', () => { location.hash = 'ayarlar'; });
+$('edit-connection').addEventListener('click', () => { location.hash = 'settings'; });
 document.querySelectorAll('[data-template]').forEach(link => link.addEventListener('click', event => {
   if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
   applyTemplate(templates[link.dataset.template]);
@@ -389,7 +420,7 @@ $('clear-key').addEventListener('click', async () => {
     $('api-key').value = '';
     invalidateModels();
     updateConnectionStatus();
-    notice('Anahtar uygulama belleğinden silindi. Anahtar Zinciri kaydı için mac_keychain.py forget kullanın.');
+    notice(t('The key was removed from app memory. To delete the Keychain entry, use mac_keychain.py forget.', 'Anahtar uygulama belleğinden silindi. Anahtar Zinciri kaydı için mac_keychain.py forget kullanın.'));
   } catch (error) { notice(error.message); }
 });
 $('run').addEventListener('click', runExperiment);
@@ -413,13 +444,14 @@ $('api-key').addEventListener('input', () => {
 });
 $('images').addEventListener('change', () => {
   const files = [...$('images').files];
-  $('image-count').textContent = files.length ? files.map(f => f.name).join(', ') : 'Görsel seçilmedi';
+  $('image-count').textContent = files.length ? files.map(f => f.name).join(', ') : t('No images selected', 'Görsel seçilmedi');
 });
 document.querySelectorAll('[data-mode]').forEach(button => button.addEventListener('click', () => {
   mode = button.dataset.mode;
   updateModeUI();
   notice('');
 }));
+translatePage();
 syncView(!!location.hash);
 window.addEventListener('hashchange', () => syncView(true));
 applyTemplate();

@@ -4,6 +4,8 @@
 
 TinyTroupe ile persona deneyleri yapmak için Mac üzerinde çalışan yerel web arayüzü. Persona, senaryo, soru ve görselleri her çalıştırmada kendiniz belirlersiniz. Üç yöntem vardır: bağımsız görüşme, grup konuşması ve **Siteyi gez** (ajanlar gerçek bir web sitesini tarayıcıda gezer).
 
+Arayüz varsayılan olarak İngilizcedir. Türkçe için sağ üstteki dil menüsünden **Türkçe**'yi seçin. Seçim bu tarayıcıda hatırlanır; hata ve ilerleme mesajlarının, indirilen raporun ve tarayıcı modunda ajanlara verilen yönergelerin dilini de belirler. Dil değiştirmek sayfayı yeniden yükler; bu yüzden dili formu doldurmadan önce seçin. Deney çalışırken dil değiştirilemez. Komut satırı yardımcıları (`start.py`, `mac_keychain.py`) ve eski Jupyter arayüzü `PLAYGROUND_LANG=tr` ayarlanmadıkça İngilizce çalışır. Aşağıda arayüz etiketleri Türkçe arayüzdeki hâlleriyle yazılmıştır.
+
 ## Docker ile kurulum (önerilen)
 
 Docker Desktop açıkken proje klasöründe:
