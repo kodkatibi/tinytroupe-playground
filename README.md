@@ -1,78 +1,82 @@
 # TinyTroupe Playground
 
-TinyTroupe ile persona deneyleri yapmak için Mac üzerinde çalışan yerel web arayüzü. Persona, senaryo, soru ve görselleri her çalıştırmada kendiniz belirlersiniz. Üç yöntem vardır: bağımsız görüşme, grup konuşması ve **Siteyi gez** (ajanlar gerçek bir web sitesini tarayıcıda gezer).
+**English** · [Türkçe](README.tr.md)
 
-## Docker ile kurulum (önerilen)
+A local web UI for running TinyTroupe persona experiments on a Mac. You set the personas, scenario, question and images for each run. There are three methods: independent interviews, group conversation, and **Siteyi gez** ("browse the site"), where agents browse a real website in a browser.
 
-Docker Desktop açıkken proje klasöründe:
+The interface is in Turkish. UI labels below are quoted as they appear on screen, with an English gloss.
+
+## Setup with Docker (recommended)
+
+With Docker Desktop running, in the project folder:
 
 ```bash
 docker compose up --build -d
 ```
 
-Ardından tarayıcıda `http://127.0.0.1:8765/` adresini açın. `localhost:8765` çalışmaz: uygulama yalnız bu adresi kabul eder. Kapatmak için `docker compose down`.
+Then open `http://127.0.0.1:8765/` in your browser. `localhost:8765` does not work: the app only accepts this exact address. Stop it with `docker compose down`.
 
-- Uygulama (`8765`) ve tarayıcı ekranı (`6080`) Mac'te yalnız `127.0.0.1` üzerinde yayımlanır.
-- Konteyner proje klasörünü bağlamaz. Kod değiştiyse `docker compose up --build -d` ile yeniden derleyin.
-- Tarayıcı profili, VNC parola dosyası ve TinyTroupe logları konteynerin bellekteki `/tmp` alanında, her deneye ait geçici bir klasörde tutulur. Deney bittiğinde, iptal edildiğinde veya hata verdiğinde bu klasör ve deneyin bütün süreçleri silinir.
+- The app (`8765`) and the browser screen (`6080`) are published on the Mac only on `127.0.0.1`.
+- The container does not mount the project folder. If the code changed, rebuild with `docker compose up --build -d`.
+- The browser profile, VNC password file and TinyTroupe logs live in a per-experiment temporary folder in the container's in-memory `/tmp`. When an experiment finishes, is canceled or fails, that folder and all of the experiment's processes are deleted.
 
-## CLIProxyAPI ve model
+## CLIProxyAPI and models
 
-Bu sürüm bağlantı olarak Tailscale üzerindeki CLIProxyAPI `:8317/v1` adresini kabul eder (`http://100.x.x.x:8317/v1/`). Docker Desktop konteynerin dış bağlantılarını Mac üzerinden yaptığı için Tailscale adresine konteynerden de erişilir.
+This version only accepts a CLIProxyAPI `:8317/v1` address on Tailscale (`http://100.x.x.x:8317/v1/`). Docker Desktop routes the container's outbound traffic through the Mac, so the Tailscale address is reachable from the container too.
 
-**Ayarlar** sekmesinde CLIProxyAPI adresini ve istemci anahtarını girin. Adres ve seçtiğiniz model bu tarayıcıda hatırlanır. İstemci anahtarı yönetim anahtarı değildir; tarayıcı depolamasına kaydedilmez. **Modelleri yükle**, kimlik doğrulamalı `/v1/models` isteği yapar. Modeli listeden seçtikten sonra deneyi başlatın. Persona, senaryo, görseller ve tarayıcı modunda sayfa metni ile ekran görüntüleri seçilen modele gönderilir.
+In the **Ayarlar** (Settings) tab, enter the CLIProxyAPI address and the client key. The address and your chosen model are remembered in this browser. The client key is not the management key, and it is never saved to browser storage. **Modelleri yükle** (Load models) makes an authenticated `/v1/models` request. Pick a model from the list, then start the experiment. Personas, scenario, images, and in browser mode the page text and screenshots, are sent to the selected model.
 
-Anahtarı her açılışta girmemek için macOS Anahtar Zinciri'ni kullanın. İlk seferde Mac terminalinde, bu klasörde:
+To avoid typing the key on every launch, use macOS Keychain. The first time, in a Mac terminal in this folder:
 
 ```bash
 python3 mac_keychain.py set
 ```
 
-`security` komutu anahtarı etkileşimli olarak sorar; anahtar komut satırı argümanına girmez. Sonraki açılışlarda `docker compose up` yerine:
+The `security` command prompts for the key interactively, so the key never appears in command-line arguments. On later launches, instead of `docker compose up`:
 
 ```bash
 python3 mac_keychain.py start
 ```
 
-Bu komut Docker uygulamasını başlatır, anahtarı Anahtar Zinciri'nden alıp yalnız `127.0.0.1:8765` üzerinden uygulamanın belleğine aktarır. Anahtar Docker imajına, Compose ortam değişkenlerine veya tarayıcı depolamasına yazılmaz. Uygulama kapanınca bellekteki kopya kaybolur. Ayarlar sekmesinden bellekteki kopyayı silebilirsiniz; Anahtar Zinciri kaydını silmek için `python3 mac_keychain.py forget` kullanın. Anahtar Zinciri olmadan, anahtarı Ayarlar sekmesinde açık sayfa için elle girebilirsiniz.
+This starts the Docker app, reads the key from Keychain, and hands it to the app's memory over `127.0.0.1:8765` only. The key is never written to the Docker image, Compose environment variables or browser storage. The in-memory copy is gone when the app stops. You can clear the in-memory copy from the Settings tab; to delete the Keychain entry, run `python3 mac_keychain.py forget`. Without Keychain, you can type the key in the Settings tab for the open page.
 
-**Yerel güvenlik sınırı:** Uygulama tek kullanıcılı bir yerel araçtır. Mac üzerinde çalışan başka bir yerel süreç `127.0.0.1:8765` arayüzüne erişebiliyorsa yüklü anahtarla model isteği başlatabilir; API anahtarının kendisini okuyamaz. Paylaşılan veya güvenilmeyen bir Mac'te uygulamayı açık bırakmayın ve işiniz bitince `docker compose down` çalıştırın.
+**Local security boundary:** this is a single-user local tool. Any other local process on the Mac that can reach `127.0.0.1:8765` can start model requests with the loaded key, though it cannot read the key itself. Don't leave the app running on a shared or untrusted Mac, and run `docker compose down` when you're done.
 
-Sonuçları ekranda izleyip Markdown olarak indirebilirsiniz. Deney girdileri otomatik kaydedilmez; indirilen rapora anahtar konmaz. Model listesinde görünmek, bir modelin TinyTroupe yapılandırılmış yanıtları ve görsel çağrılarıyla çalışacağını garanti etmez. Sentetik yanıtlar gerçek kullanıcı görüşmesi değildir.
+You can watch results on screen and download them as Markdown. Experiment inputs are not saved automatically, and the downloaded report never contains the key. A model showing up in the list does not guarantee it works with TinyTroupe's structured responses and image calls. Synthetic answers are not real user interviews.
 
-## Siteyi gez: tarayıcı deneyi
+## Browse the site: browser experiments
 
-Bu yöntem yalnız Docker kurulumunda çalışır.
+This method only works with the Docker setup.
 
-1. **Hedef adres** alanına sitenin adresini girin:
-   - Mac'te çalışan yerel bir site için Mac'te kullandığınız adresin aynısını yazın, örneğin `http://app.localhost:3000/`. Konteynerdeki tarayıcı `localhost` ve `*.localhost` adreslerini Mac'in yayımladığı portlara yönlendirir; adres, çerezler ve Host başlığı değişmez.
-   - `http://` yalnız `localhost` ve `*.localhost` için kabul edilir. Diğer siteler `https://` olmalıdır.
-   - `127.0.0.1` ve `::1` reddedilir; konteyner içinde bu adresler Mac'i değil konteynerin kendisini gösterir. Bunların yerine `localhost` yazın.
-2. Deneyi başlatın. Sonuçlar bölümünde **Tarayıcı ekranını aç** bağlantısı çıkar. Bu bağlantı noVNC'yi yeni sekmede açar; deneye özel parola bağlantının `#` kısmındadır ve deney bitince geçersiz olur.
-3. Açılan tarayıcıda siteye kendiniz giriş yapın, sonra uygulama sekmesine dönüp **Girişi tamamladım**'a basın. 15 dakika içinde devam edilmezse deney durur.
-4. Devam ettiğinizde diğer sekmeler kapatılır, koruma kuralları kurulur ve ilk sekme hedef adrese yeniden açılır. Personalar bu oturumu sırayla kullanır. Gezintiyi aynı bağlantıdan (**Ajanları izle**) izleyebilirsiniz.
+1. Enter the site's address in **Hedef adres** (Target address):
+   - For a local site running on the Mac, use the same address you use on the Mac, for example `http://app.localhost:3000/`. The browser in the container routes `localhost` and `*.localhost` to the ports the Mac publishes; the address, cookies and Host header stay the same.
+   - `http://` is accepted only for `localhost` and `*.localhost`. Every other site must use `https://`.
+   - `127.0.0.1` and `::1` are rejected: inside the container they point at the container itself, not the Mac. Use `localhost` instead.
+2. Start the experiment. A **Tarayıcı ekranını aç** (Open browser screen) link appears in the results section. It opens noVNC in a new tab; the per-experiment password is in the link's `#` fragment and stops working when the experiment ends.
+3. Log in to the site yourself in that browser, then go back to the app tab and press **Girişi tamamladım** (I've logged in). If you don't continue within 15 minutes, the experiment stops.
+4. When you continue, other tabs are closed, the guard rules are installed, and the first tab reopens at the target address. Personas use this session one after another. You can watch the browsing from the same link (**Ajanları izle**, Watch the agents).
 
-**Salt-okuma koruması (varsayılan) en iyi çabadır:**
-- GET/HEAD/OPTIONS dışındaki istekler ve WebSocket bağlantıları engellenir. Service worker'lar bütün oturum boyunca kapalıdır.
-- Sayfa geçişleri hedef host içinde kalır. Bir yönlendirme siteden çıkarırsa sayfa modele gönderilmeden önce hedef adrese geri dönülür.
-- GET ile veri değiştiren uçlar engellenemez. POST ile okuma yapan sayfalar (ör. GraphQL) bu modda bozulabilir.
+**The read-only guard (the default) is best effort:**
+- Requests other than GET/HEAD/OPTIONS and WebSocket connections are blocked. Service workers stay disabled for the whole session.
+- Navigation stays on the target host. If a redirect leaves the site, the browser returns to the target address before the page is sent to the model.
+- Endpoints that change data on GET cannot be blocked. Pages that read data with POST (e.g. GraphQL) may break in this mode.
 
-**Veri değiştiren isteklere izin ver** seçilirse ajanlar gerçek veriyi değiştirebilir ve bir personanın yaptığı değişiklik sonrakilere kalır. Sayfa geçişleri bu modda da hedef host'ta kalır.
+If you check **Veri değiştiren isteklere izin ver** (Allow requests that change data), agents can change real data, and one persona's changes carry over to the next. Navigation still stays on the target host in this mode.
 
-Canlı bir sitede sayfa metni ve ekran görüntüleri CLIProxyAPI üzerinden model sağlayıcısına gider. Canlı ortamda ayrı bir test hesabı kullanın.
+On a live site, page text and screenshots go to the model provider through CLIProxyAPI. Use a separate test account on live environments.
 
-## Sorun giderme
+## Troubleshooting
 
-- **Sayfa 403 veriyor:** `localhost:8765` yerine `http://127.0.0.1:8765/` adresini kullanın.
-- **noVNC "password check failed" diyor veya bağlanmıyor:** Bağlantıyı bu deneyin sonuç kutusundan yeniden açın. Eski bir sekmenin parolası yeni deneyde geçmez. noVNC'yi de `localhost:6080` üzerinden değil, bağlantıdaki `127.0.0.1:6080` adresiyle açın.
-- **Parolayı yapıştırmak:** noVNC'nin sol panelindeki pano alanına yapıştırıp uzak tarayıcıda `Ctrl+V` kullanın. VNC panosu yalnız Latin-1 taşır: ASCII parolalar sorunsuz geçer, `ş`, `ğ`, `ı` gibi Türkçe karakterler bozulur. Türkçe karakterleri klavyeyle yazın.
-- **Yerel site açılmıyor:** Siteyi önce Mac'te aynı adresle açıp çalıştığını doğrulayın. Konteyner, Mac'te dinlenen porta `host.docker.internal` üzerinden gider.
-- **Tarayıcı ajanlar düşünürken donuk görünüyor:** Koruma kuralları yalnız ajan bir tarayıcı işlemi yaparken çalışır. Model yanıtı beklenirken arka plandaki istekler bekler; bu beklenen davranıştır.
-- **Model hatası:** Model listesinde olup TinyTroupe biçimine uymayan modeller hata verebilir; başka bir model deneyin.
+- **The page returns 403:** use `http://127.0.0.1:8765/` instead of `localhost:8765`.
+- **noVNC says "password check failed" or won't connect:** reopen the link from this experiment's results box. An old tab's password does not work for a new experiment. Open noVNC at the `127.0.0.1:6080` address in the link, not at `localhost:6080`.
+- **Pasting a password:** paste it into the clipboard field in noVNC's left panel, then press `Ctrl+V` in the remote browser. The VNC clipboard only carries Latin-1: ASCII passwords work, but characters such as `ş`, `ğ`, `ı` get garbled. Type those on the keyboard.
+- **A local site won't open:** first check that the site opens on the Mac at the same address. The container reaches ports the Mac listens on through `host.docker.internal`.
+- **The browser looks frozen while agents think:** the guard rules only run while an agent is performing a browser action. Background requests wait while the model is responding; this is expected.
+- **Model error:** models that are in the list but don't fit TinyTroupe's format can fail; try another model.
 
-## Docker'sız yerel kurulum
+## Local setup without Docker
 
-Görüşme ve grup yöntemleri Docker'sız da çalışır. Python 3.12 ile proje klasöründe:
+The interview and group methods also work without Docker. With Python 3.12, in the project folder:
 
 ```bash
 python3.12 -m venv .venv
@@ -80,13 +84,13 @@ python3.12 -m venv .venv
 python3 start.py
 ```
 
-Uygulama `127.0.0.1` üzerinde rastgele bir portta açılır. `python3 start.py --notebook` eski Jupyter arayüzünü açar; bunun için ayrıca `.venv/bin/python -m pip install jupyterlab` gerekir.
+The app opens on a random port on `127.0.0.1`. `python3 start.py --notebook` opens the older Jupyter UI; that also needs `.venv/bin/python -m pip install jupyterlab`.
 
-## Geliştirme
+## Development
 
 ```bash
 .venv/bin/python -m unittest test_web_app.py
 docker compose run --rm -T --workdir /tmp playground python -m unittest discover -s /app -p test_web_app.py
 ```
 
-TinyTroupe, `requirements.txt` içinde `v0.7.0` commit'ine sabitlenmiştir; PyPI'deki `tinytroupe` paketi bir yer tutucudur. Yeni bir TinyTroupe sürümüne geçmek için commit adresini ve `constraints.txt` dosyasını güncelleyin, testleri ve üç yöntemi yeniden çalıştırın.
+TinyTroupe is pinned to the `v0.7.0` commit in `requirements.txt`; the `tinytroupe` package on PyPI is a placeholder. To move to a newer TinyTroupe, update the commit URL and `constraints.txt`, then rerun the tests and all three methods.
