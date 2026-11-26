@@ -1,0 +1,3 @@
+tinytroupe @ https://github.com/microsoft/TinyTroupe/archive/a6244b358a1fe1c71bf751f7ba0f8dfa368ec5a4.zip
+Pillow==13.0.0
+playwright==1.65.2

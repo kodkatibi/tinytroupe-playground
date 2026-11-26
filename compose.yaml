@@ -1,0 +1,11 @@
+services:
+  playground:
+    build: .
+    image: tinytroupe-playground:local
+    init: true
+    ports:
+      - "127.0.0.1:8765:8765"  # web app; its Host check expects exactly this address
+      - "127.0.0.1:6080:6080"  # noVNC, listening only during a browser experiment
+    tmpfs:
+      - /tmp  # browser profile, VNC password file and logs never touch the disk
+    shm_size: "1gb"  # Chromium crashes with Docker's 64 MB default

@@ -1,0 +1,10 @@
+.venv
+.git
+__pycache__
+*.py[cod]
+*.log
+.ipynb_checkpoints
+.env*
+.DS_Store
+generated_images
+.idea
