@@ -272,6 +272,7 @@ class SettingsBrowserTests(unittest.TestCase):
                     page.get_by_role("link", name="Settings", exact=True).click(timeout=3000)
                     page.locator("#base-url").fill("http://100.64.0.1:8317/v1/")
                     page.locator("#load-models").click()
+                    page.locator("#step-review").wait_for(state="visible")
                     page.locator("#model").select_option("model-b")
                     page.reload()
                     page.wait_for_function("document.querySelector('#model').value === 'model-b'")
@@ -286,6 +287,147 @@ class SettingsBrowserTests(unittest.TestCase):
                     self.assertEqual(page.locator("#base-url").input_value(), "http://100.64.0.1:8317/v1/")
                 finally:
                     browser.close()
+
+
+class ExperimentStepsBrowserTests(unittest.TestCase):
+    def test_template_step_navigation_and_first_field_error(self):
+        from http.server import ThreadingHTTPServer
+        from threading import Thread
+        from playwright.sync_api import sync_playwright
+        from web_app import State, make_handler
+
+        server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(State()))
+        Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch(headless=True,
+                executable_path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
+            try:
+                page = browser.new_page()
+                page.goto(f"http://127.0.0.1:{server.server_port}/")
+                page.locator("#show-experiment").click()
+                page.locator("#allow-writes").check()
+                page.locator("#steps").fill("")
+                page.locator("#show-landing").click()
+                page.locator('[data-template="kampanya"]').click()
+                page.locator("#step-context").wait_for(state="visible")
+                self.assertFalse(page.locator("#allow-writes").is_checked())
+                self.assertEqual(page.locator("#steps").input_value(), "3")
+                scenario = page.locator("#scenario").input_value()
+                self.assertTrue(scenario)
+
+                page.locator('.step-nav [data-step="personas"]').click()
+                self.assertTrue(page.locator("#step-personas").is_visible())
+                self.assertGreaterEqual(page.locator(".step-nav").bounding_box()["y"], 0)
+                page.locator(".persona-card .name").first.fill("Taylor")
+                page.locator('.step-nav [data-step="context"]').click()
+                self.assertEqual(page.locator("#scenario").input_value(), scenario)
+
+                page.locator("#question").fill("")
+                page.locator('.step-nav [data-step="review"]').click()
+                self.assertTrue(page.locator("#run").is_enabled())
+                page.locator("#run").click()
+                self.assertTrue(page.locator("#step-context").is_visible())
+                self.assertEqual(page.evaluate("document.activeElement.id"), "question")
+                self.assertEqual(page.locator("#question").get_attribute("aria-invalid"), "true")
+                page.locator("#question").fill("What matters most?")
+                self.assertIsNone(page.locator("#question").get_attribute("aria-invalid"))
+                page.locator('.step-nav [data-step="personas"]').click()
+                page.locator(".persona-card .role").first.fill("")
+                page.locator('.step-nav [data-step="review"]').click()
+                page.locator("#run").click()
+                self.assertTrue(page.locator("#step-personas").is_visible())
+                self.assertEqual(page.evaluate("document.activeElement.className"), "role")
+                page.locator(".persona-card .role").first.fill("Customer")
+                page.locator(".persona-card .profile-text").first.fill("Checks the price")
+                page.evaluate("document.querySelector('#steps').value = ''")
+                page.locator('.step-nav [data-step="review"]').click()
+                page.locator("#run").click()
+                self.assertTrue(page.locator("#step-review").is_visible())
+                self.assertEqual(page.locator("#model").get_attribute("aria-invalid"), "true")
+                self.assertEqual(page.evaluate("document.activeElement.id"), "edit-connection")
+                page.locator("#edit-connection").click()
+                page.locator("#base-url").fill("http://100.64.0.1:8317/v1/")
+                page.locator("#api-key").fill("sample-key")
+                with patch("web_app.fetch_models", return_value=["model-a"]):
+                    page.locator("#load-models").click()
+                page.locator("#step-review").wait_for(state="visible")
+                page.locator("#model").select_option("model-a")
+                page.locator("#edit-connection").click()
+                page.locator("#base-url").fill("http://100.64.0.2:8317/v1/")
+                page.locator("#show-experiment").click()
+                page.locator("#run").click()
+                self.assertEqual(page.locator("#model").get_attribute("aria-invalid"), "true")
+                page.locator("#edit-connection").click()
+                with patch("web_app.fetch_models", return_value=["model-a"]):
+                    page.locator("#load-models").click()
+                page.locator("#step-review").wait_for(state="visible")
+                self.assertEqual(page.locator("#model").input_value(), "model-a")
+                self.assertIsNone(page.locator("#model").get_attribute("aria-invalid"))
+                page.locator('.step-nav [data-step="context"]').click()
+                page.locator("#images").set_input_files({"name": "sample.png", "mimeType": "image/png", "buffer": b"sample"})
+                page.locator('.step-nav [data-step="review"]').click()
+                page.evaluate("() => { imageData = () => new Promise(() => {}); }")
+                page.locator("#run").click()
+                self.assertTrue(page.locator("#run").is_disabled())
+                page.locator("#edit-connection").click()
+                page.locator("#base-url").fill("http://100.64.0.3:8317/v1/")
+                page.locator("#show-experiment").click()
+                self.assertTrue(page.locator("#run").is_disabled())
+            finally:
+                browser.close()
+
+
+class BrowserObserveTests(unittest.TestCase):
+    def test_observe_reads_spa_content_after_it_loads(self):
+        import time
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+        from threading import Thread
+        from playwright.sync_api import sync_playwright
+        from local_browser import LocalBrowserTool
+
+        # Like a Nuxt app: the first paint is a bare logo, the content arrives from an API call.
+        html = (b"<!doctype html><body><img alt='logo' src='data:,'><script>"
+                b"fetch('/api/data').then(r => r.json()).then(d => {"
+                b"document.body.innerHTML = '<h1>' + d.title + '</h1><button>Analitik</button>'; });"
+                b"</script></body>")
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                if self.path == "/api/data":
+                    time.sleep(1)
+                    body, kind = b'{"title": "SonarPrice analitik"}', "application/json"
+                else:
+                    body, kind = html, "text/html"
+                self.send_response(200)
+                self.send_header("Content-Type", kind)
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def log_message(self, *args):
+                pass
+
+        server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        seen = []
+        agent = MagicMock()
+        agent.see.side_effect = lambda images=None, description=None: seen.append(description)
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch(headless=True,
+                executable_path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
+            try:
+                page = browser.new_page()
+                url = f"http://127.0.0.1:{server.server_port}/"
+                page.goto(url, wait_until="domcontentloaded")
+                LocalBrowserTool(page, url, False, 3).observe(agent)
+            finally:
+                browser.close()
+        self.assertIn("SonarPrice analitik", seen[-1])
+        self.assertIn("1. Analitik", seen[-1])
 
 
 if __name__ == "__main__":

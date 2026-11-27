@@ -99,10 +99,20 @@ class LocalBrowserTool(TinyTool):
               '  - Bulduğun belirsizlikleri TALK ile anlat; görmediğin bilgiyi uydurma.\n')
         )
 
+    def _settle(self):
+        # SPAs paint a splash at domcontentloaded and render after their API calls; wait for quiet.
+        try:
+            self.page.wait_for_load_state("networkidle", timeout=8_000)
+        except PlaywrightError:
+            pass  # a page that keeps polling never goes quiet; read what it shows
+
     def observe(self, agent):
+        # Settle first: a client-side redirect during loading must still hit the host check below.
+        self._settle()
         # Redirects skip the request guard, so re-check the host before anything reaches the model.
         if urlsplit(self.page.url).hostname != self.target_host:
             self.page.goto(self.target_url, wait_until="domcontentloaded", timeout=20_000)
+            self._settle()
             if urlsplit(self.page.url).hostname != self.target_host:
                 raise RuntimeError(t("The target address redirects off the site; the session may have expired.",
                                       "Hedef adres site dışına yönlendiriyor; oturum düşmüş olabilir."))

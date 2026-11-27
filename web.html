@@ -78,20 +78,15 @@
           <h1 id="experiment-title" tabindex="-1" data-tr="Deney Masası">Experiment Desk</h1>
           <p data-tr="Test etmek istediğin mesajı, ekranı veya akışı tarif et. Araştırma sorunu yaz ve personaları seç.">Describe the message, screen or flow you want to test. Write your research question and choose personas.</p>
         </header>
+        <nav class="step-nav" aria-label="Experiment steps" data-tr-aria-label="Deney adımları">
+          <button type="button" data-step="context"><span class="step-number">01</span><span data-tr="Bağlam ve yöntem">Context and method</span></button>
+          <button type="button" data-step="personas"><span class="step-number">02</span><span data-tr="Personalar">Personas</span></button>
+          <button type="button" data-step="review"><span class="step-number">03</span><span data-tr="Son kontrol ve model">Review and model</span></button>
+        </nav>
 
-        <section class="panel connection" aria-labelledby="connection-title">
-          <div class="section-heading"><div><h2 id="connection-title" data-tr="Model bağlantısı">Model connection</h2></div><button id="edit-connection" class="text-button" type="button" data-tr="Bağlantı ayarları">Connection settings</button></div>
-          <p id="connection-summary" class="connection-summary" data-tr="Bağlantı ayarları kontrol ediliyor…">Checking connection settings…</p>
-          <div class="model-row">
-            <label><span data-tr="Deney modeli">Experiment model</span><select id="model" disabled><option value="" data-tr="Önce model listesini yükleyin">Load the model list first</option></select></label>
-            <div id="model-count" class="model-count" data-tr="Henüz bağlantı kurulmadı">No connection yet</div>
-          </div>
-          <p class="privacy-note" data-tr="İstemci anahtarı tarayıcı depolamasına kaydedilmez. Metin ve görseller seçtiğiniz modele CLIProxyAPI üzerinden gönderilir.">The client key is not saved to browser storage. Text and images are sent to your chosen model through CLIProxyAPI.</p>
-        </section>
-
-        <div class="work-grid">
+        <div id="step-context" class="desk-step">
           <section class="panel scenario" aria-labelledby="scenario-title">
-            <div class="section-heading"><div><h2 id="scenario-title" data-tr="Deney bağlamı">Experiment context</h2></div></div>
+            <div class="section-heading"><div><h2 id="scenario-title" tabindex="-1" data-tr="Deney bağlamı">Experiment context</h2></div></div>
             <div class="two-cols">
               <label><span data-tr="Senaryo">Scenario</span><textarea id="scenario" rows="5" placeholder="Describe the situation the agents are in and the product" data-tr-placeholder="Ajanların bulunduğu durumu ve ürünü anlatın"></textarea></label>
               <label><span data-tr="Araştırma sorusu">Research question</span><textarea id="question" rows="5" placeholder="Write the question you want the agents to answer" data-tr-placeholder="Ajanların yanıtlamasını istediğiniz soruyu yazın"></textarea></label>
@@ -108,28 +103,49 @@
               <p id="write-warning" class="browser-warning danger" hidden data-tr="Yazma açık: ajanlar gerçek veriyi değiştirebilir. Personalar aynı oturumu sırayla kullanır; bir personanın yaptığı değişiklik sonrakilere kalır.">Writes are on: agents can change real data. Personas use the same session in turn; one persona's changes carry over to the next.</p>
             </div>
           </section>
+          <div class="step-actions"><button class="button primary" type="button" data-step="personas"><span data-tr="Personalar: sonraki adım">Next: personas</span> <span aria-hidden="true">→</span></button></div>
+        </div>
 
+        <div id="step-personas" class="desk-step" hidden>
           <section class="panel participants" aria-labelledby="people-title">
             <div class="section-heading">
-              <h2 id="people-title" data-tr="Personalar">Personas</h2>
+              <h2 id="people-title" tabindex="-1" data-tr="Personalar">Personas</h2>
               <button id="add-persona" class="text-button" type="button" data-tr="＋ Persona ekle">＋ Add persona</button>
             </div>
             <div id="personas" class="persona-list"></div>
-            <div class="action-bar">
-              <p data-tr="Sentetik yanıtlar araştırma varsayımlarıdır.">Synthetic replies are research hypotheses.</p>
-              <div class="action-buttons">
-                <button id="cancel" class="button cancel" type="button" hidden data-tr="İptal et">Cancel</button>
-                <button id="run" class="button primary" type="button" disabled><span data-tr="Deneyi başlat">Start experiment</span> <span aria-hidden="true">→</span></button>
-              </div>
-            </div>
           </section>
+          <div class="step-actions"><button class="button secondary" type="button" data-step="context" data-tr="← Bağlama dön">← Back to context</button><button class="button primary" type="button" data-step="review"><span data-tr="Son kontrol: sonraki adım">Next: review</span> <span aria-hidden="true">→</span></button></div>
+        </div>
+
+        <div id="step-review" class="desk-step" hidden>
+          <section class="panel review" aria-labelledby="review-title">
+            <div class="section-heading"><h2 id="review-title" tabindex="-1" data-tr="Son kontrol">Review</h2></div>
+            <dl class="review-list">
+              <div><dt data-tr="Yöntem">Method</dt><dd id="summary-method"></dd></div>
+              <div><dt data-tr="Personalar">Personas</dt><dd id="summary-personas"></dd></div>
+              <div id="summary-target-row" hidden><dt data-tr="Hedef adres">Target address</dt><dd id="summary-target"></dd></div>
+            </dl>
+            <p id="summary-writes" class="browser-warning danger" hidden data-tr="Yazma izni açık: ajanlar gerçek veriyi değiştirebilir.">Writes are enabled: agents can change real data.</p>
+          </section>
+          <section class="panel connection" aria-labelledby="connection-title">
+            <div class="section-heading"><div><h2 id="connection-title" data-tr="Model bağlantısı">Model connection</h2></div><button id="edit-connection" class="text-button" type="button" data-tr="Bağlantı ayarları">Connection settings</button></div>
+            <p id="connection-summary" class="connection-summary" data-tr="Bağlantı ayarları kontrol ediliyor…">Checking connection settings…</p>
+            <div class="model-row">
+              <label><span data-tr="Deney modeli">Experiment model</span><select id="model" disabled><option value="" data-tr="Önce model listesini yükleyin">Load the model list first</option></select></label>
+              <div id="model-count" class="model-count" data-tr="Henüz bağlantı kurulmadı">No connection yet</div>
+            </div>
+            <p class="privacy-note" data-tr="İstemci anahtarı tarayıcı depolamasına kaydedilmez. Metin ve görseller seçtiğiniz modele CLIProxyAPI üzerinden gönderilir.">The client key is not saved to browser storage. Text and images are sent to your chosen model through CLIProxyAPI.</p>
+          </section>
+          <p id="review-error" class="notice" role="alert" tabindex="-1" hidden></p>
+          <div class="step-actions"><button class="button secondary" type="button" data-step="personas" data-tr="← Personalara dön">← Back to personas</button><button id="run" class="button primary" type="button"><span data-tr="Deneyi başlat">Start experiment</span> <span aria-hidden="true">→</span></button></div>
+          <p class="research-note" data-tr="Sentetik yanıtlar araştırma varsayımlarıdır.">Synthetic replies are research hypotheses.</p>
         </div>
 
         <section id="results-panel" class="panel results" aria-labelledby="results-title" hidden>
-          <div class="section-heading"><div><h2 id="results-title" data-tr="Ajanların yanıtları">Agent replies</h2></div><button id="download" class="text-button" type="button" hidden data-tr="↓ Markdown indir">↓ Download Markdown</button></div>
+          <div class="section-heading"><div><h2 id="results-title" data-tr="Ajanların yanıtları">Agent replies</h2></div><div class="action-buttons"><button id="cancel" class="button cancel" type="button" hidden data-tr="İptal et">Cancel</button><button id="download" class="text-button" type="button" hidden data-tr="↓ Markdown indir">↓ Download Markdown</button></div></div>
           <div id="progress" class="progress" aria-live="polite"></div>
           <div id="login-box" class="login-box" hidden>
-            <p id="login-help" data-tr="<strong>Siteye giriş yapın.</strong> Tarayıcı ekranını yeni sekmede açın, giriş yapın, sonra buraya dönüp devam edin. 15 dakika içinde devam edilmezse deney durur."><strong>Log in to the site.</strong> Open the browser screen in a new tab, log in, then come back here and continue. If you don't continue within 15 minutes, the experiment stops.</p>
+            <p id="login-help" tabindex="-1" data-tr="<strong>Siteye giriş yapın.</strong> Tarayıcı ekranını yeni sekmede açın, giriş yapın, sonra buraya dönüp devam edin. 15 dakika içinde devam edilmezse deney durur."><strong>Log in to the site.</strong> Open the browser screen in a new tab, log in, then come back here and continue. If you don't continue within 15 minutes, the experiment stops.</p>
             <div class="action-buttons"><a id="vnc-link" class="button secondary" target="_blank" rel="noopener noreferrer">Open browser screen ↗</a><button id="continue" class="button primary" type="button" data-tr="Girişi tamamladım">I've logged in</button></div>
           </div>
           <div id="results" class="result-list"></div>

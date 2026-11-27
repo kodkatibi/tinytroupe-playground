@@ -9,6 +9,10 @@ let lastReport = null;
 let modelsLoadedFor = null;
 let serverKeyAvailable = false;
 let preferredModel = '';
+let currentStep = 'context';
+let waitingForLogin = false;
+let personaInputId = 0;
+let submittingJob = false;
 const views = {
   home: ['landing', 'landing-title'],
   experiment: ['experiment', 'experiment-title'],
@@ -80,7 +84,32 @@ function syncView(focus) {
   }
   if (focus) {
     window.scrollTo(0, 0);
-    $(title).focus({ preventScroll: true });
+    const stepTitle = currentStep === 'personas' ? 'people-title' : 'review-title';
+    $(view === 'experiment' && currentStep !== 'context' ? stepTitle : title).focus({ preventScroll: true });
+  }
+}
+
+function updateReviewSummary() {
+  $('summary-method').textContent = mode === 'browser' ? t('Browse site', 'Siteyi gez')
+    : mode === 'world' ? t('Group conversation', 'Grup konuşması') : t('Independent interviews', 'Bağımsız görüşme');
+  $('summary-personas').textContent = personas().map(person => person.name || t('Unnamed persona', 'Adsız persona')).join(', ');
+  $('summary-target-row').hidden = mode !== 'browser';
+  $('summary-target').textContent = $('target-url').value.trim() || t('Not entered', 'Girilmedi');
+  $('summary-writes').hidden = mode !== 'browser' || !$('allow-writes').checked;
+}
+
+function setStep(step, focus = true) {
+  currentStep = step;
+  for (const name of ['context', 'personas', 'review']) $('step-' + name).hidden = name !== step;
+  document.querySelectorAll('.step-nav [data-step]').forEach(button => {
+    if (button.dataset.step === step) button.setAttribute('aria-current', 'step');
+    else button.removeAttribute('aria-current');
+  });
+  if (step === 'review') updateReviewSummary();
+  if (focus && !$('experiment-view').hidden) {
+    const heading = $(step === 'context' ? 'scenario-title' : step === 'personas' ? 'people-title' : 'review-title');
+    heading.focus({ preventScroll: true });
+    document.querySelector('.step-nav').scrollIntoView({ block: 'start' });
   }
 }
 
@@ -123,7 +152,7 @@ function connectionSignature() {
 }
 
 function refreshRunButton() {
-  $('run').disabled = !!activeJob || !modelsLoadedFor || modelsLoadedFor !== connectionSignature() || !$('model').value;
+  $('run').disabled = !!activeJob || submittingJob;
 }
 
 function invalidateModels() {
@@ -158,6 +187,7 @@ function addPersona(values = {}) {
   card.querySelector('.name').value = values.name || '';
   card.querySelector('.role').value = values.role || '';
   card.querySelector('.profile-text').value = values.profile || '';
+  card.querySelectorAll('input, textarea').forEach(field => { field.id = `persona-input-${++personaInputId}`; });
   card.querySelector('.persona-remove').addEventListener('click', () => {
     if ($('personas').children.length === 1) return notice(t('At least one persona is required.', 'En az bir persona gerekli.'));
     card.remove();
@@ -185,9 +215,13 @@ function updateModeUI() {
 }
 
 function applyTemplate(template) {
+  clearValidation();
   $('scenario').value = template?.scenario || '';
   $('question').value = template?.question || '';
   $('target-url').value = '';
+  $('steps').value = '3';
+  $('allow-writes').checked = false;
+  $('write-warning').hidden = true;
   $('personas').replaceChildren();
   if (template) {
     mode = template.mode;
@@ -196,6 +230,7 @@ function applyTemplate(template) {
   $('images').value = '';
   $('image-count').textContent = t('No images selected', 'Görsel seçilmedi');
   updateModeUI();
+  setStep('context', false);
   refreshRunButton();
   notice('');
 }
@@ -231,10 +266,14 @@ async function loadModels(returnToDesk = true) {
     for (const id of data.models) select.add(new Option(id, id));
     select.disabled = false;
     if (data.models.includes(preferredModel)) select.value = preferredModel;
+    if (select.value) clearFieldError(select);
     modelsLoadedFor = signature;
     $('model-count').textContent = t(`${data.models.length} models found`, `${data.models.length} model bulundu`);
     refreshRunButton();
-    if (returnToDesk && location.hash === '#settings') location.hash = 'experiment';
+    if (returnToDesk && location.hash === '#settings') {
+      setStep('review', false);
+      location.hash = 'experiment';
+    }
   } catch (error) {
     invalidateModels();
     notice(error.message);
@@ -270,6 +309,7 @@ function showResults(data) {
 
 function finishJob() {
   activeJob = null;
+  waitingForLogin = false;
   $('cancel').hidden = true;
   $('login-box').hidden = true;
   refreshRunButton();
@@ -282,6 +322,11 @@ function showLogin(job) {
   $('continue').hidden = !waiting;
   $('login-help').hidden = !waiting;
   $('vnc-link').textContent = waiting ? t('Open browser screen ↗', 'Tarayıcı ekranını aç ↗') : t('Watch the agents ↗', 'Ajanları izle ↗');
+  if (waiting && !waitingForLogin) {
+    $('login-help').focus({ preventScroll: true });
+    $('login-box').scrollIntoView({ block: 'center' });
+  }
+  waitingForLogin = waiting;
 }
 
 async function continueJob() {
@@ -322,39 +367,105 @@ async function pollJob(jobId) {
   }
 }
 
+function clearFieldError(field) {
+  if (field.getAttribute('aria-invalid') !== 'true') return;
+  field.removeAttribute('aria-invalid');
+  const error = document.getElementById(`${field.id}-error`);
+  if (error) error.remove();
+  const describedBy = (field.getAttribute('aria-describedby') || '').split(' ').filter(id => id && id !== `${field.id}-error`);
+  if (describedBy.length) field.setAttribute('aria-describedby', describedBy.join(' '));
+  else field.removeAttribute('aria-describedby');
+}
+
+function clearValidation() {
+  document.querySelectorAll('[aria-invalid="true"]').forEach(clearFieldError);
+  $('review-error').hidden = true;
+  $('review-error').textContent = '';
+}
+
+function showFieldError(field, message, step) {
+  clearValidation();
+  setStep(step);
+  field.setAttribute('aria-invalid', 'true');
+  const error = document.createElement('span');
+  error.className = 'field-error';
+  error.id = `${field.id}-error`;
+  error.textContent = message;
+  field.insertAdjacentElement('afterend', error);
+  field.setAttribute('aria-describedby', [field.getAttribute('aria-describedby'), error.id].filter(Boolean).join(' '));
+  (field.disabled ? $('edit-connection') : field).focus();
+}
+
+function firstInputError() {
+  if (!$('scenario').value.trim()) return [$('scenario'), t('Enter a scenario.', 'Senaryo girin.'), 'context'];
+  if (!$('question').value.trim()) return [$('question'), t('Enter a research question.', 'Araştırma sorusu girin.'), 'context'];
+  if (mode !== 'interview' && (!Number.isInteger(Number($('steps').value)) || !$('steps').value || Number($('steps').value) < 1 || Number($('steps').value) > 6))
+    return [$('steps'), t('Enter a number from 1 to 6.', '1 ile 6 arasında bir sayı girin.'), 'context'];
+  if (mode === 'browser') {
+    const target = $('target-url').value.trim();
+    if (!target) return [$('target-url'), t('Enter a target address.', 'Hedef adresi girin.'), 'context'];
+    try {
+      const url = new URL(target);
+      if (!['http:', 'https:'].includes(url.protocol) || !url.hostname) throw new Error();
+    } catch { return [$('target-url'), t('Enter a valid http or https URL.', 'Geçerli bir http veya https adresi girin.'), 'context']; }
+  } else {
+    const files = [...$('images').files];
+    if (files.length > 4 || files.some(file => file.size > 5 * 1024 * 1024 || !['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(file.type)))
+      return [$('images'), t('Choose up to 4 PNG, JPEG, WebP or GIF images, each up to 5 MB.', 'Her biri en çok 5 MB olan, en fazla 4 PNG, JPEG, WebP veya GIF seçin.'), 'context'];
+  }
+  const names = new Set();
+  for (const card of $('personas').children) {
+    for (const [selector, label] of [['.name', t('name', 'ad')], ['.role', t('role', 'rol')], ['.profile-text', t('profile', 'profil')]]) {
+      const field = card.querySelector(selector);
+      if (!field.value.trim()) return [field, t(`Enter the persona ${label}.`, `Personanın ${label} alanını doldurun.`), 'personas'];
+    }
+    const name = card.querySelector('.name');
+    const normalized = name.value.trim().toLocaleLowerCase('tr');
+    if (names.has(normalized)) return [name, t('Persona names must be different.', 'Persona adları farklı olmalı.'), 'personas'];
+    names.add(normalized);
+  }
+  if (!modelsLoadedFor || modelsLoadedFor !== connectionSignature() || !$('model').value)
+    return [$('model'), t('Load the models and choose one.', 'Modelleri yükleyip birini seçin.'), 'review'];
+  return null;
+}
+
 async function runExperiment() {
   notice('');
-  if (!modelsLoadedFor || modelsLoadedFor !== connectionSignature() || !$('model').value) return notice(t('Load the models and choose one first.', 'Önce modelleri yükleyip bir model seçin.'));
+  const error = firstInputError();
+  if (error) return showFieldError(...error);
+  clearValidation();
   const people = personas();
-  if (people.some(p => !p.name || !p.role || !p.profile)) return notice(t("Fill in every persona's name, role and profile.", 'Her personanın adını, rolünü ve profilini doldurun.'));
-  if (new Set(people.map(p => p.name.toLocaleLowerCase('tr'))).size !== people.length) return notice(t('Persona names must be different.', 'Persona adları farklı olmalı.'));
   const files = mode === 'browser' ? [] : [...$('images').files];
-  if (files.length > 4 || files.some(f => f.size > 5 * 1024 * 1024 || !['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(f.type))) return notice(t('Upload at most 4 PNG, JPEG, WebP or GIF images. Each image can be at most 5 MB.', 'En fazla 4 adet PNG, JPEG, WebP veya GIF yükleyin. Her görsel en çok 5 MB olabilir.'));
   const payload = {
     base_url: $('base-url').value.trim(), api_key: $('api-key').value,
     model: $('model').value, scenario: $('scenario').value.trim(), question: $('question').value.trim(),
-    mode, steps: Number($('steps').value), personas: people,
+    mode, steps: mode === 'interview' ? 1 : Number($('steps').value), personas: people,
     target_url: $('target-url').value.trim(), allow_writes: $('allow-writes').checked
   };
-  if (!payload.scenario || !payload.question) return notice(t('A scenario and a question are required.', 'Senaryo ve soru gerekli.'));
   $('results-panel').hidden = false;
   $('results').replaceChildren();
   $('download').hidden = true;
   $('progress').classList.add('working');
   $('progress').textContent = t('Starting the experiment…', 'Deney başlatılıyor…');
   $('results-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  $('run').disabled = true;
+  submittingJob = true;
+  refreshRunButton();
   try {
     payload.images = await Promise.all(files.map(imageData));
     lastReport = { input: { ...payload, api_key: undefined, images: files.map(file => file.name) }, result: null };
     const response = await request('/api/run', payload);
     activeJob = response.job_id;
+    submittingJob = false;
+    refreshRunButton();
     $('cancel').hidden = false;
     pollJob(activeJob);
   } catch (error) {
+    submittingJob = false;
     $('progress').classList.remove('working');
     $('progress').textContent = t('The experiment could not be started.', 'Deney başlatılamadı.');
-    notice(error.message);
+    $('review-error').textContent = error.message;
+    $('review-error').hidden = false;
+    $('review-error').focus();
     refreshRunButton();
   }
 }
@@ -398,6 +509,9 @@ $('language').addEventListener('change', () => {
   savePreference(languagePreference, chosen);
   if (readPreference(languagePreference) === chosen) location.reload();
 });
+document.querySelectorAll('[data-step]').forEach(button => button.addEventListener('click', () => setStep(button.dataset.step)));
+document.addEventListener('input', event => { if (event.target.matches('[aria-invalid="true"]')) clearFieldError(event.target); });
+document.addEventListener('change', event => { if (event.target.matches('[aria-invalid="true"]')) clearFieldError(event.target); });
 $('add-persona').addEventListener('click', () => addPersona());
 $('load-models').addEventListener('click', () => loadModels());
 $('edit-connection').addEventListener('click', () => { location.hash = 'settings'; });
@@ -448,6 +562,7 @@ $('images').addEventListener('change', () => {
 });
 document.querySelectorAll('[data-mode]').forEach(button => button.addEventListener('click', () => {
   mode = button.dataset.mode;
+  clearValidation();
   updateModeUI();
   notice('');
 }));
