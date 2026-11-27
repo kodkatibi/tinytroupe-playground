@@ -6,6 +6,8 @@ import sys
 from time import monotonic
 from urllib.parse import urlsplit
 
+from i18n import set_lang, t
+
 
 PREFIX = "@@TINY_PLAYGROUND@@"
 
@@ -20,10 +22,12 @@ def spoken(actions):
         action = item.get("action", item)
         if action.get("type") == "TALK" and action.get("content"):
             lines.append(str(action["content"]).strip())
-    return "\n".join(lines) or "(Sözlü yanıt gelmedi.)"
+    return "\n".join(lines)
 
 
 def run(payload):
+    set_lang(payload.get("lang"))
+    no_reply = t("(No spoken reply.)", "(Sözlü yanıt gelmedi.)")
     gateway = payload.pop("base_url")
     os.environ["OPENAI_BASE_URL"] = gateway
     gateway_host = urlsplit(gateway).hostname or ""
@@ -61,7 +65,7 @@ def run(payload):
     TinyWorld.communication_display = False
     agents = []
     for person in payload["personas"]:
-        emit("progress", message=f"{person['name']} hazırlanıyor…")
+        emit("progress", message=t(f"Preparing {person['name']}…", f"{person['name']} hazırlanıyor…"))
         agent = TinyPerson(person["name"])
         agent.include_persona_definitions({
             "occupation": person["role"],
@@ -75,39 +79,43 @@ def run(payload):
     results = []
     if payload["mode"] == "interview":
         for agent in agents:
-            emit("progress", message=f"{agent.name} yanıtlıyor…")
+            emit("progress", message=t(f"{agent.name} is answering…", f"{agent.name} yanıtlıyor…"))
             agent.listen(payload["question"], communication_display=False)
-            reply = spoken(agent.act(return_actions=True, communication_display=False))
+            reply = spoken(agent.act(return_actions=True, communication_display=False)) or no_reply
             results.append({"label": agent.name, "reply": reply})
-            emit("progress", message=f"{agent.name} tamamlandı.")
+            emit("progress", message=t(f"{agent.name} is done.", f"{agent.name} tamamlandı."))
     elif payload["mode"] == "world":
-        world = TinyWorld("Çalışma grubu", agents)
+        world = TinyWorld(t("Working group", "Çalışma grubu"), agents)
         world.make_everyone_accessible()
         world.broadcast(payload["question"])
         for step in range(1, payload["steps"] + 1):
-            emit("progress", message=f"Grup turu {step}/{payload['steps']} çalışıyor…")
+            emit("progress", message=t(f"Running group round {step}/{payload['steps']}…",
+                                         f"Grup turu {step}/{payload['steps']} çalışıyor…"))
             for actions_by_agent in world.run(1, return_actions=True,
                                               randomize_agents_order=False, parallelize=False):
                 for agent_name, actions in actions_by_agent.items():
-                    results.append({"label": f"Tur {step} · {agent_name}", "reply": spoken(actions)})
-            emit("progress", message=f"Grup turu {step} tamamlandı.")
+                    results.append({"label": t(f"Round {step} · {agent_name}", f"Tur {step} · {agent_name}"),
+                                    "reply": spoken(actions) or no_reply})
+            emit("progress", message=t(f"Group round {step} done.", f"Grup turu {step} tamamlandı."))
     else:
         from tinytroupe.agent.mental_faculty import TinyToolUse
         from local_browser import LocalBrowserTool, guard, launch_browser, start_display, stop_display
 
         target = payload["target_url"]
-        emit("progress", message="Sanal tarayıcı ekranı hazırlanıyor…")
+        emit("progress", message=t("Preparing the virtual browser screen…", "Sanal tarayıcı ekranı hazırlanıyor…"))
         display = start_display(payload.pop("vnc_password"))
         playwright = browser = None
         try:
             playwright, browser = launch_browser()
             # service_workers can only be set at creation, so it covers the login phase too.
-            context = browser.new_context(locale="tr-TR", no_viewport=True, service_workers="block")
+            context = browser.new_context(locale=t("en-US", "tr-TR"), no_viewport=True, service_workers="block")
             page = context.new_page()
             page.goto(target, wait_until="domcontentloaded", timeout=30_000)
-            emit("waiting_login", message="Tarayıcı ekranında giriş yapın, ardından 'Girişi tamamladım'a basın.")
+            emit("waiting_login", message=t("Log in on the browser screen, then press 'I've logged in'.",
+                                             "Tarayıcı ekranında giriş yapın, ardından 'Girişi tamamladım'a basın."))
             if sys.stdin.readline().strip() != "continue":
-                raise RuntimeError("Giriş beklenirken uygulama bağlantısı kesildi.")
+                raise RuntimeError(t("The app connection was lost while waiting for the login.",
+                                     "Giriş beklenirken uygulama bağlantısı kesildi."))
             context.cookies()  # one round trip so tabs opened or closed during readline() are registered
             if page.is_closed():
                 page = context.pages[0] if context.pages else context.new_page()
@@ -118,7 +126,7 @@ def run(payload):
             guard(context, target, payload["allow_writes"], blocked)
             context.on("page", lambda extra: extra.close())  # the tool only watches the first page
             for agent in agents:
-                emit("progress", message=f"{agent.name} siteyi geziyor…")
+                emit("progress", message=t(f"{agent.name} is browsing the site…", f"{agent.name} siteyi geziyor…"))
                 blocked.clear()
                 # Also drops sockets opened while logging in, before the guard existed.
                 page.goto(target, wait_until="domcontentloaded", timeout=20_000)
@@ -127,31 +135,36 @@ def run(payload):
                     progress=lambda message: emit("progress", message=f"{agent.name}: {message}"),
                 )
                 agent.add_mental_faculty(TinyToolUse([tool]))
-                agent.listen(payload["question"] + " Sitedeki ekranları kendin incele; bulgularını anlat.", communication_display=False)
+                agent.listen(payload["question"] + t(" Explore the site's screens yourself and describe your findings.",
+                                                     " Sitedeki ekranları kendin incele; bulgularını anlat."),
+                             communication_display=False)
                 tool.observe(agent)
                 answers = []
                 for _ in range(payload["steps"] * 3):
                     actions = agent.act(until_done=False, n=1, return_actions=True,
                                         communication_display=False)
                     reply = spoken(actions)
-                    if reply != "(Sözlü yanıt gelmedi.)":
+                    if reply:
                         answers.append(reply)
                     if tool.actions_used >= payload["steps"] or any(
                         item.get("action", item).get("type") == "DONE" for item in actions or []
                     ):
                         break
-                agent.listen("Gezinme adımları bitti. Gördüğün arayüzü değerlendir; eksik veya belirsiz bulduğun noktaları Türkçe ve kısa anlat.", communication_display=False)
+                agent.listen(t("The browsing steps are over. Evaluate the interface you saw; briefly describe in English "
+                               "anything you found missing or unclear.",
+                               "Gezinme adımları bitti. Gördüğün arayüzü değerlendir; eksik veya belirsiz bulduğun "
+                               "noktaları Türkçe ve kısa anlat."), communication_display=False)
                 for _ in range(3):
                     actions = agent.act(until_done=False, n=1, return_actions=True,
                                         communication_display=False)
                     reply = spoken(actions)
-                    if reply != "(Sözlü yanıt gelmedi.)":
+                    if reply:
                         answers.append(reply)
                         break
-                results.append({"label": agent.name, "reply": "\n\n".join(answers) or "(Sözlü yanıt gelmedi.)",
+                results.append({"label": agent.name, "reply": "\n\n".join(answers) or no_reply,
                                 "trace": [item.get("action") or item.get("url", "") for item in tool.history],
                                 "blocked_requests": list(blocked)})
-                emit("progress", message=f"{agent.name} gezintiyi tamamladı.")
+                emit("progress", message=t(f"{agent.name} finished browsing.", f"{agent.name} gezintiyi tamamladı."))
         finally:
             if browser:
                 browser.close()
@@ -167,5 +180,5 @@ if __name__ == "__main__":
     try:
         emit("result", data=run(json.loads(sys.stdin.readline())))
     except Exception as exc:
-        message = str(exc).replace(os.environ.get("OPENAI_API_KEY", "\0"), "[gizli]")
+        message = str(exc).replace(os.environ.get("OPENAI_API_KEY", "\0"), t("[hidden]", "[gizli]"))
         emit("error", message=f"{type(exc).__name__}: {message[:240]}")

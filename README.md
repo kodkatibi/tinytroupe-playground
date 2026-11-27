@@ -2,9 +2,9 @@
 
 **English** · [Türkçe](README.tr.md)
 
-A local web UI for running TinyTroupe persona experiments on a Mac. You set the personas, scenario, question and images for each run. There are three methods: independent interviews, group conversation, and **Siteyi gez** ("browse the site"), where agents browse a real website in a browser.
+A local web UI for running TinyTroupe persona experiments on a Mac. You set the personas, scenario, question and images for each run. There are three methods: independent interviews, group conversation, and **Browse site**, where agents browse a real website in a browser.
 
-The interface is in Turkish. UI labels below are quoted as they appear on screen, with an English gloss.
+The interface is in English by default. For Turkish, pick **Türkçe** from the language menu at the top right. The choice is remembered in this browser and also sets the language of error and progress messages, the downloaded report and the browser-mode instructions to the agents. Switching reloads the page, so pick the language before you fill in the form; it can't be switched while an experiment is running. The command-line helpers (`start.py`, `mac_keychain.py`) and the older Jupyter UI use English unless you set `PLAYGROUND_LANG=tr`.
 
 ## Setup with Docker (recommended)
 
@@ -24,7 +24,7 @@ Then open `http://127.0.0.1:8765/` in your browser. `localhost:8765` does not wo
 
 This version only accepts a CLIProxyAPI `:8317/v1` address on Tailscale (`http://100.x.x.x:8317/v1/`). Docker Desktop routes the container's outbound traffic through the Mac, so the Tailscale address is reachable from the container too.
 
-In the **Ayarlar** (Settings) tab, enter the CLIProxyAPI address and the client key. The address and your chosen model are remembered in this browser. The client key is not the management key, and it is never saved to browser storage. **Modelleri yükle** (Load models) makes an authenticated `/v1/models` request. Pick a model from the list, then start the experiment. Personas, scenario, images, and in browser mode the page text and screenshots, are sent to the selected model.
+In the **Settings** tab, enter the CLIProxyAPI address and the client key. The address and your chosen model are remembered in this browser. The client key is not the management key, and it is never saved to browser storage. **Load models** makes an authenticated `/v1/models` request. Pick a model from the list, then start the experiment. Personas, scenario, images, and in browser mode the page text and screenshots, are sent to the selected model.
 
 To avoid typing the key on every launch, use macOS Keychain. The first time, in a Mac terminal in this folder:
 
@@ -48,20 +48,20 @@ You can watch results on screen and download them as Markdown. Experiment inputs
 
 This method only works with the Docker setup.
 
-1. Enter the site's address in **Hedef adres** (Target address):
+1. Enter the site's address in **Target address**:
    - For a local site running on the Mac, use the same address you use on the Mac, for example `http://app.localhost:3000/`. The browser in the container routes `localhost` and `*.localhost` to the ports the Mac publishes; the address, cookies and Host header stay the same.
    - `http://` is accepted only for `localhost` and `*.localhost`. Every other site must use `https://`.
    - `127.0.0.1` and `::1` are rejected: inside the container they point at the container itself, not the Mac. Use `localhost` instead.
-2. Start the experiment. A **Tarayıcı ekranını aç** (Open browser screen) link appears in the results section. It opens noVNC in a new tab; the per-experiment password is in the link's `#` fragment and stops working when the experiment ends.
-3. Log in to the site yourself in that browser, then go back to the app tab and press **Girişi tamamladım** (I've logged in). If you don't continue within 15 minutes, the experiment stops.
-4. When you continue, other tabs are closed, the guard rules are installed, and the first tab reopens at the target address. Personas use this session one after another. You can watch the browsing from the same link (**Ajanları izle**, Watch the agents).
+2. Start the experiment. An **Open browser screen** link appears in the results section. It opens noVNC in a new tab; the per-experiment password is in the link's `#` fragment and stops working when the experiment ends.
+3. Log in to the site yourself in that browser, then go back to the app tab and press **I've logged in**. If you don't continue within 15 minutes, the experiment stops.
+4. When you continue, other tabs are closed, the guard rules are installed, and the first tab reopens at the target address. Personas use this session one after another. You can watch the browsing from the same link (**Watch the agents**).
 
 **The read-only guard (the default) is best effort:**
 - Requests other than GET/HEAD/OPTIONS and WebSocket connections are blocked. Service workers stay disabled for the whole session.
 - Navigation stays on the target host. If a redirect leaves the site, the browser returns to the target address before the page is sent to the model.
 - Endpoints that change data on GET cannot be blocked. Pages that read data with POST (e.g. GraphQL) may break in this mode.
 
-If you check **Veri değiştiren isteklere izin ver** (Allow requests that change data), agents can change real data, and one persona's changes carry over to the next. Navigation still stays on the target host in this mode.
+If you check **Allow requests that change data**, agents can change real data, and one persona's changes carry over to the next. Navigation still stays on the target host in this mode.
 
 On a live site, page text and screenshots go to the model provider through CLIProxyAPI. Use a separate test account on live environments.
 

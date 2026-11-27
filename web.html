@@ -1,24 +1,25 @@
 <!doctype html>
-<html lang="tr">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="app-token" content="__APP_TOKEN__">
-  <title>TinyTroupe Playground · Pazarlama ve Kullanıcı Deneyimi</title>
+  <title data-tr="TinyTroupe Playground · Pazarlama ve Kullanıcı Deneyimi">TinyTroupe Playground · Marketing and User Experience</title>
   <link rel="stylesheet" href="/web.css">
   <script src="/web.js" defer></script>
 </head>
 <body>
   <header class="topbar">
     <div class="shell header-inner">
-      <a class="brand" href="#ana-sayfa" aria-label="TinyTroupe Playground ana sayfa">
+      <a class="brand" href="#home" aria-label="TinyTroupe Playground home" data-tr-aria-label="TinyTroupe Playground ana sayfa">
         <span class="brand-mark"><img src="/assets/focus-group-logo.webp" alt=""></span>
         TinyTroupe Playground
       </a>
-      <nav class="top-nav" aria-label="Ana gezinme">
-        <a id="show-landing" class="nav-button active" href="#ana-sayfa" aria-current="page">Ana sayfa</a>
-        <a id="show-experiment" class="nav-button" href="#deney-masasi">Deney Masası</a>
-        <a id="show-settings" class="nav-button" href="#ayarlar">Ayarlar</a>
+      <nav class="top-nav" aria-label="Main navigation" data-tr-aria-label="Ana gezinme">
+        <a id="show-landing" class="nav-button active" href="#home" aria-current="page" data-tr="Ana sayfa">Home</a>
+        <a id="show-experiment" class="nav-button" href="#experiment" data-tr="Deney Masası">Experiment Desk</a>
+        <a id="show-settings" class="nav-button" href="#settings" data-tr="Ayarlar">Settings</a>
+        <select id="language" class="language" aria-label="Language" data-tr-aria-label="Dil"><option value="en">English</option><option value="tr">Türkçe</option></select>
       </nav>
     </div>
   </header>
@@ -28,114 +29,114 @@
       <section class="hero">
         <div class="shell">
           <div class="hero-copy">
-            <h1 id="landing-title" tabindex="-1">Bir fikir kur.<br><em>Bir topluluğa sor.</em></h1>
-            <p>Kampanya mesajlarını, arayüz tasarımlarını ve kullanıcı akışlarını sentetik personalarla test et. Neyin anlaşıldığını ve kullanıcıların nerede takılabileceğini keşfet.</p>
-            <a class="primary" href="#deney-masasi">Yeni deney <span aria-hidden="true">→</span></a>
+            <h1 id="landing-title" tabindex="-1" data-tr="Bir fikir kur.<br><em>Bir topluluğa sor.</em>">Build an idea.<br><em>Ask a crowd.</em></h1>
+            <p data-tr="Kampanya mesajlarını, arayüz tasarımlarını ve kullanıcı akışlarını sentetik personalarla test et. Neyin anlaşıldığını ve kullanıcıların nerede takılabileceğini keşfet.">Test campaign messages, interface designs and user flows with synthetic personas. Find out what gets understood and where users might get stuck.</p>
+            <a class="primary" href="#experiment"><span data-tr="Yeni deney">New experiment</span> <span aria-hidden="true">→</span></a>
           </div>
-          <img src="/assets/persona-hero.webp" width="960" height="640" alt="Bir fikre farklı tepkiler veren üç persona">
+          <img src="/assets/persona-hero.webp" width="960" height="640" alt="Three personas reacting differently to an idea" data-tr-alt="Bir fikre farklı tepkiler veren üç persona">
         </div>
       </section>
       <section class="shell use-cases" aria-labelledby="cases-title">
-        <h2 id="cases-title">Neyi test etmek istiyorsun?</h2>
+        <h2 id="cases-title" data-tr="Neyi test etmek istiyorsun?">What do you want to test?</h2>
         <div class="cards">
-          <a class="case" href="#deney-masasi" data-template="kampanya">
+          <a class="case" href="#experiment" data-template="kampanya">
             <span class="icon" aria-hidden="true">
               <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10v4h4l10 4V6L7 10H3ZM7 14l2 5m11-10 2-1m-2 7 2 1"/></svg>
             </span>
-            <h3>Kampanya mesajı</h3><p>Başlığının ve teklifinin nasıl anlaşıldığını gör.</p><span class="arrow" aria-hidden="true">→</span>
+            <h3 data-tr="Kampanya mesajı">Campaign message</h3><p data-tr="Başlığının ve teklifinin nasıl anlaşıldığını gör.">See how your headline and offer are understood.</p><span class="arrow" aria-hidden="true">→</span>
           </a>
-          <a class="case" href="#deney-masasi" data-template="sayfa">
+          <a class="case" href="#experiment" data-template="sayfa">
             <span class="icon" aria-hidden="true">
               <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18m-14 4h6m-6 3h10"/></svg>
             </span>
-            <h3>Arayüz ve kullanıcı akışı</h3><p>Açılış sayfası, kayıt veya ödeme adımlarında kullanıcıların nerede takılabileceğini keşfet.</p><span class="arrow" aria-hidden="true">→</span>
+            <h3 data-tr="Arayüz ve kullanıcı akışı">Interface and user flow</h3><p data-tr="Açılış sayfası, kayıt veya ödeme adımlarında kullanıcıların nerede takılabileceğini keşfet.">Find where users might get stuck on a landing page, sign-up or checkout step.</p><span class="arrow" aria-hidden="true">→</span>
           </a>
-          <a class="case" href="#deney-masasi" data-template="grup">
+          <a class="case" href="#experiment" data-template="grup">
             <span class="icon" aria-hidden="true">
               <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h13v9H8l-5 3V5Zm6 11v2h7l5 3V9h-3"/></svg>
             </span>
-            <h3>Grup konuşması</h3><p>Farklı personaların bir teklifi veya tasarım alternatiflerini nasıl değerlendirdiğini gör.</p><span class="arrow" aria-hidden="true">→</span>
+            <h3 data-tr="Grup konuşması">Group conversation</h3><p data-tr="Farklı personaların bir teklifi veya tasarım alternatiflerini nasıl değerlendirdiğini gör.">See how different personas weigh an offer or design alternatives.</p><span class="arrow" aria-hidden="true">→</span>
           </a>
         </div>
       </section>
     </div>
     <div class="shell">
       <section id="settings-view" class="panel settings-view" aria-labelledby="settings-title" hidden>
-        <div class="section-heading"><div><h2 id="settings-title" tabindex="-1">Model bağlantısı</h2></div></div>
-        <p class="settings-intro">CLIProxyAPI adresi ve seçtiğiniz model bu tarayıcıda hatırlanır. İstemci anahtarı tarayıcıya kaydedilmez.</p>
+        <div class="section-heading"><div><h2 id="settings-title" tabindex="-1" data-tr="Model bağlantısı">Model connection</h2></div></div>
+        <p class="settings-intro" data-tr="CLIProxyAPI adresi ve seçtiğiniz model bu tarayıcıda hatırlanır. İstemci anahtarı tarayıcıya kaydedilmez.">The CLIProxyAPI address and your chosen model are remembered in this browser. The client key is not saved to the browser.</p>
         <div class="connection-grid">
-          <label>CLIProxyAPI adresi <span class="hint">Tailscale /v1</span><input id="base-url" type="url" placeholder="http://100.x.x.x:8317/v1/" autocomplete="off" spellcheck="false"></label>
-          <label>İstemci anahtarı <span class="hint">Yönetim anahtarı değil</span><input id="api-key" type="password" placeholder="Anahtar Zinciri yoksa bu oturum için girin" autocomplete="off" spellcheck="false"></label>
-          <button id="load-models" class="button secondary" type="button"><span class="button-icon">↻</span> Modelleri yükle</button>
+          <label><span data-tr="CLIProxyAPI adresi">CLIProxyAPI address</span> <span class="hint">Tailscale /v1</span><input id="base-url" type="url" placeholder="http://100.x.x.x:8317/v1/" autocomplete="off" spellcheck="false"></label>
+          <label><span data-tr="İstemci anahtarı">Client key</span> <span class="hint" data-tr="Yönetim anahtarı değil">Not the management key</span><input id="api-key" type="password" placeholder="Enter for this session if Keychain isn't set up" data-tr-placeholder="Anahtar Zinciri yoksa bu oturum için girin" autocomplete="off" spellcheck="false"></label>
+          <button id="load-models" class="button secondary" type="button"><span class="button-icon">↻</span> <span data-tr="Modelleri yükle">Load models</span></button>
         </div>
-        <p id="settings-key-status" class="privacy-note">Anahtar durumu kontrol ediliyor…</p>
-        <div class="keychain-help"><strong>Mac Anahtar Zinciri ile otomatik yükleme</strong><p>İlk kurulumda terminalde <code>python3 mac_keychain.py set</code> çalıştırın. Sonraki açılışlarda <code>python3 mac_keychain.py start</code> kullanın. Anahtar Docker yapılandırmasına veya tarayıcı depolamasına yazılmaz; çalışan uygulamanın belleğine aktarılır.</p><div class="settings-actions"><button id="clear-settings" class="text-button" type="button">Kaydedilen adresi ve modeli temizle</button><button id="clear-key" class="text-button" type="button">Anahtarı uygulama belleğinden sil</button></div></div>
+        <p id="settings-key-status" class="privacy-note" data-tr="Anahtar durumu kontrol ediliyor…">Checking key status…</p>
+        <div class="keychain-help"><strong data-tr="Mac Anahtar Zinciri ile otomatik yükleme">Automatic loading with Mac Keychain</strong><p data-tr="İlk kurulumda terminalde <code>python3 mac_keychain.py set</code> çalıştırın. Sonraki açılışlarda <code>python3 mac_keychain.py start</code> kullanın. Anahtar Docker yapılandırmasına veya tarayıcı depolamasına yazılmaz; çalışan uygulamanın belleğine aktarılır.">On first setup, run <code>python3 mac_keychain.py set</code> in a terminal. On later launches, use <code>python3 mac_keychain.py start</code>. The key is never written to the Docker configuration or browser storage; it is handed to the running app's memory.</p><div class="settings-actions"><button id="clear-settings" class="text-button" type="button" data-tr="Kaydedilen adresi ve modeli temizle">Clear saved address and model</button><button id="clear-key" class="text-button" type="button" data-tr="Anahtarı uygulama belleğinden sil">Remove key from app memory</button></div></div>
       </section>
 
       <div id="experiment-view" hidden>
         <header class="desk-heading">
-          <h1 id="experiment-title" tabindex="-1">Deney Masası</h1>
-          <p>Test etmek istediğin mesajı, ekranı veya akışı tarif et. Araştırma sorunu yaz ve personaları seç.</p>
+          <h1 id="experiment-title" tabindex="-1" data-tr="Deney Masası">Experiment Desk</h1>
+          <p data-tr="Test etmek istediğin mesajı, ekranı veya akışı tarif et. Araştırma sorunu yaz ve personaları seç.">Describe the message, screen or flow you want to test. Write your research question and choose personas.</p>
         </header>
 
         <section class="panel connection" aria-labelledby="connection-title">
-          <div class="section-heading"><div><h2 id="connection-title">Model bağlantısı</h2></div><button id="edit-connection" class="text-button" type="button">Bağlantı ayarları</button></div>
-          <p id="connection-summary" class="connection-summary">Bağlantı ayarları kontrol ediliyor…</p>
+          <div class="section-heading"><div><h2 id="connection-title" data-tr="Model bağlantısı">Model connection</h2></div><button id="edit-connection" class="text-button" type="button" data-tr="Bağlantı ayarları">Connection settings</button></div>
+          <p id="connection-summary" class="connection-summary" data-tr="Bağlantı ayarları kontrol ediliyor…">Checking connection settings…</p>
           <div class="model-row">
-            <label>Deney modeli<select id="model" disabled><option value="">Önce model listesini yükleyin</option></select></label>
-            <div id="model-count" class="model-count">Henüz bağlantı kurulmadı</div>
+            <label><span data-tr="Deney modeli">Experiment model</span><select id="model" disabled><option value="" data-tr="Önce model listesini yükleyin">Load the model list first</option></select></label>
+            <div id="model-count" class="model-count" data-tr="Henüz bağlantı kurulmadı">No connection yet</div>
           </div>
-          <p class="privacy-note">İstemci anahtarı tarayıcı depolamasına kaydedilmez. Metin ve görseller seçtiğiniz modele CLIProxyAPI üzerinden gönderilir.</p>
+          <p class="privacy-note" data-tr="İstemci anahtarı tarayıcı depolamasına kaydedilmez. Metin ve görseller seçtiğiniz modele CLIProxyAPI üzerinden gönderilir.">The client key is not saved to browser storage. Text and images are sent to your chosen model through CLIProxyAPI.</p>
         </section>
 
         <div class="work-grid">
           <section class="panel scenario" aria-labelledby="scenario-title">
-            <div class="section-heading"><div><h2 id="scenario-title">Deney bağlamı</h2></div></div>
+            <div class="section-heading"><div><h2 id="scenario-title" data-tr="Deney bağlamı">Experiment context</h2></div></div>
             <div class="two-cols">
-              <label>Senaryo<textarea id="scenario" rows="5" placeholder="Ajanların bulunduğu durumu ve ürünü anlatın"></textarea></label>
-              <label>Araştırma sorusu<textarea id="question" rows="5" placeholder="Ajanların yanıtlamasını istediğiniz soruyu yazın"></textarea></label>
+              <label><span data-tr="Senaryo">Scenario</span><textarea id="scenario" rows="5" placeholder="Describe the situation the agents are in and the product" data-tr-placeholder="Ajanların bulunduğu durumu ve ürünü anlatın"></textarea></label>
+              <label><span data-tr="Araştırma sorusu">Research question</span><textarea id="question" rows="5" placeholder="Write the question you want the agents to answer" data-tr-placeholder="Ajanların yanıtlamasını istediğiniz soruyu yazın"></textarea></label>
             </div>
             <div class="experiment-bottom">
-              <div class="method-field"><span class="label-title">Yöntem</span><div class="segment" role="group" aria-label="Deney yöntemi"><button data-mode="interview" type="button">Bağımsız görüşme</button><button data-mode="world" type="button">Grup konuşması</button><button class="active" data-mode="browser" type="button">Siteyi gez</button></div></div>
-              <label id="steps-field" class="steps-field" hidden><span id="steps-label">Grup turu</span><input id="steps" type="number" min="1" max="6" value="3"></label>
-              <label id="upload-field" class="upload-field" hidden>Görseller <span class="optional">(isteğe bağlı)</span><span id="upload-limit" class="hint">En çok 4 · 5 MB/görsel</span><input id="images" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple aria-describedby="upload-limit image-count"><span id="image-count" class="upload-note">Görsel seçilmedi</span></label>
+              <div class="method-field"><span class="label-title" data-tr="Yöntem">Method</span><div class="segment" role="group" aria-label="Experiment method" data-tr-aria-label="Deney yöntemi"><button data-mode="interview" type="button" data-tr="Bağımsız görüşme">Independent interviews</button><button data-mode="world" type="button" data-tr="Grup konuşması">Group conversation</button><button class="active" data-mode="browser" type="button" data-tr="Siteyi gez">Browse site</button></div></div>
+              <label id="steps-field" class="steps-field" hidden><span id="steps-label">Group rounds</span><input id="steps" type="number" min="1" max="6" value="3"></label>
+              <label id="upload-field" class="upload-field" hidden><span data-tr="Görseller">Images</span> <span class="optional" data-tr="(isteğe bağlı)">(optional)</span><span id="upload-limit" class="hint" data-tr="En çok 4 · 5 MB/görsel">Up to 4 · 5 MB/image</span><input id="images" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple aria-describedby="upload-limit image-count"><span id="image-count" class="upload-note">No images selected</span></label>
             </div>
             <div id="browser-fields" class="browser-fields" hidden>
-              <label>Hedef adres <span class="hint">Mac'te açtığınız adresin aynısı</span><input id="target-url" type="url" placeholder="http://app.localhost:3000/ veya https://…" autocomplete="off" spellcheck="false"></label>
-              <label class="check"><input id="allow-writes" type="checkbox"> Veri değiştiren isteklere izin ver</label>
-              <p class="browser-warning">Deney başında açılan tarayıcı ekranında siteye siz giriş yaparsınız; oturum diske kaydedilmez. Salt-okuma koruması yalnız <strong>en iyi çabadır</strong>: GET dışı istekler ve WebSocket engellenir, sayfa geçişleri hedef host'ta kalır; ama GET ile veri değiştiren uçlar engellenemez, POST ile okuma yapan sayfalar bozulabilir. Sayfa metni ve ekran görüntüleri CLIProxyAPI üzerinden model sağlayıcısına gider. Canlı ortamda ayrı bir test hesabı kullanın.</p>
-              <p id="write-warning" class="browser-warning danger" hidden>Yazma açık: ajanlar gerçek veriyi değiştirebilir. Personalar aynı oturumu sırayla kullanır; bir personanın yaptığı değişiklik sonrakilere kalır.</p>
+              <label><span data-tr="Hedef adres">Target address</span> <span class="hint" data-tr="Mac'te açtığınız adresin aynısı">Same address you open on the Mac</span><input id="target-url" type="url" placeholder="http://app.localhost:3000/ or https://…" data-tr-placeholder="http://app.localhost:3000/ veya https://…" autocomplete="off" spellcheck="false"></label>
+              <label class="check"><input id="allow-writes" type="checkbox"> <span data-tr="Veri değiştiren isteklere izin ver">Allow requests that change data</span></label>
+              <p class="browser-warning" data-tr="Deney başında açılan tarayıcı ekranında siteye siz giriş yaparsınız; oturum diske kaydedilmez. Salt-okuma koruması yalnız <strong>en iyi çabadır</strong>: GET dışı istekler ve WebSocket engellenir, sayfa geçişleri hedef host'ta kalır; ama GET ile veri değiştiren uçlar engellenemez, POST ile okuma yapan sayfalar bozulabilir. Sayfa metni ve ekran görüntüleri CLIProxyAPI üzerinden model sağlayıcısına gider. Canlı ortamda ayrı bir test hesabı kullanın.">You log in to the site yourself on the browser screen that opens when the experiment starts; the session is not saved to disk. Read-only protection is <strong>best effort</strong> only: non-GET requests and WebSockets are blocked and navigation stays on the target host, but endpoints that change data on GET can't be blocked, and pages that read data with POST may break. Page text and screenshots go to the model provider through CLIProxyAPI. Use a separate test account on live environments.</p>
+              <p id="write-warning" class="browser-warning danger" hidden data-tr="Yazma açık: ajanlar gerçek veriyi değiştirebilir. Personalar aynı oturumu sırayla kullanır; bir personanın yaptığı değişiklik sonrakilere kalır.">Writes are on: agents can change real data. Personas use the same session in turn; one persona's changes carry over to the next.</p>
             </div>
           </section>
 
           <section class="panel participants" aria-labelledby="people-title">
             <div class="section-heading">
-              <h2 id="people-title">Personalar</h2>
-              <button id="add-persona" class="text-button" type="button">＋ Persona ekle</button>
+              <h2 id="people-title" data-tr="Personalar">Personas</h2>
+              <button id="add-persona" class="text-button" type="button" data-tr="＋ Persona ekle">＋ Add persona</button>
             </div>
             <div id="personas" class="persona-list"></div>
             <div class="action-bar">
-              <p>Sentetik yanıtlar araştırma varsayımlarıdır.</p>
+              <p data-tr="Sentetik yanıtlar araştırma varsayımlarıdır.">Synthetic replies are research hypotheses.</p>
               <div class="action-buttons">
-                <button id="cancel" class="button cancel" type="button" hidden>İptal et</button>
-                <button id="run" class="button primary" type="button" disabled>Deneyi başlat <span aria-hidden="true">→</span></button>
+                <button id="cancel" class="button cancel" type="button" hidden data-tr="İptal et">Cancel</button>
+                <button id="run" class="button primary" type="button" disabled><span data-tr="Deneyi başlat">Start experiment</span> <span aria-hidden="true">→</span></button>
               </div>
             </div>
           </section>
         </div>
 
         <section id="results-panel" class="panel results" aria-labelledby="results-title" hidden>
-          <div class="section-heading"><div><h2 id="results-title">Ajanların yanıtları</h2></div><button id="download" class="text-button" type="button" hidden>↓ Markdown indir</button></div>
+          <div class="section-heading"><div><h2 id="results-title" data-tr="Ajanların yanıtları">Agent replies</h2></div><button id="download" class="text-button" type="button" hidden data-tr="↓ Markdown indir">↓ Download Markdown</button></div>
           <div id="progress" class="progress" aria-live="polite"></div>
           <div id="login-box" class="login-box" hidden>
-            <p id="login-help"><strong>Siteye giriş yapın.</strong> Tarayıcı ekranını yeni sekmede açın, giriş yapın, sonra buraya dönüp devam edin. 15 dakika içinde devam edilmezse deney durur.</p>
-            <div class="action-buttons"><a id="vnc-link" class="button secondary" target="_blank" rel="noopener noreferrer">Tarayıcı ekranını aç ↗</a><button id="continue" class="button primary" type="button">Girişi tamamladım</button></div>
+            <p id="login-help" data-tr="<strong>Siteye giriş yapın.</strong> Tarayıcı ekranını yeni sekmede açın, giriş yapın, sonra buraya dönüp devam edin. 15 dakika içinde devam edilmezse deney durur."><strong>Log in to the site.</strong> Open the browser screen in a new tab, log in, then come back here and continue. If you don't continue within 15 minutes, the experiment stops.</p>
+            <div class="action-buttons"><a id="vnc-link" class="button secondary" target="_blank" rel="noopener noreferrer">Open browser screen ↗</a><button id="continue" class="button primary" type="button" data-tr="Girişi tamamladım">I've logged in</button></div>
           </div>
           <div id="results" class="result-list"></div>
         </section>
       </div>
     </div>
   </main>
-  <footer><div class="shell">TinyTroupe Playground · Yerel deney arayüzü</div></footer>
+  <footer><div class="shell" data-tr="TinyTroupe Playground · Yerel deney arayüzü">TinyTroupe Playground · Local experiment interface</div></footer>
 </body>
 </html>
